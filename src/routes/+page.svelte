@@ -16,6 +16,9 @@ let ctxHover: CanvasRenderingContext2D
 let ctxPieces: CanvasRenderingContext2D
 let pieceColor: string = 'black'
 
+// 2d array for the board, black = 1, white = 2
+let boardArray: number[][] = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => 0))
+
 onMount(() => {
     ctxBoard = board.getContext('2d')
     ctxHover = hover.getContext('2d')
@@ -69,14 +72,20 @@ function placing(e: MouseEvent) {
     closestX = Math.min(GAP + GAP * COLS, Math.max(GAP, closestX))
     closestY = Math.min(GAP + GAP * ROWS, Math.max(GAP, closestY))
 
+    // check if move is legal
+    let row: number = Math.floor((closestY - GAP) / GAP)
+    let col: number = Math.floor((closestX - GAP) / GAP)
+    if (boardArray[row][col] !== 0) return
+
     // draw piece
     ctxPieces.beginPath()
     ctxPieces.arc(closestX, closestY, GAP / 2, 0, 2 * Math.PI)
     ctxPieces.fillStyle = pieceColor
     ctxPieces.fill()
 
-    // set piece color
+    // set piece color and array
     pieceColor = pieceColor === 'black' ? 'white' : 'black'
+    boardArray[row][col] = pieceColor === 'black' ? 1 : 2
 }
 
 </script>
