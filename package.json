@@ -8,7 +8,7 @@
 		"preview": "vite preview",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
-        "tauri": "tauri"
+		"tauri": "tauri"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",
@@ -30,5 +30,8 @@
 		"tailwindcss": "^3.3.6",
 		"vite": "^5.0.3"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"@tauri-apps/api": "^1.5.4"
+	}
 }
