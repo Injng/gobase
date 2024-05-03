@@ -14,6 +14,7 @@ let boardY: number = 0
 let ctxBoard: CanvasRenderingContext2D
 let ctxHover: CanvasRenderingContext2D
 let ctxPieces: CanvasRenderingContext2D
+let pieceColor: string = 'black'
 
 onMount(() => {
     ctxBoard = board.getContext('2d')
@@ -54,7 +55,7 @@ function hovering(e: MouseEvent) {
     ctxHover.clearRect(0, 0, width, height)
     ctxHover.beginPath()
     ctxHover.arc(closestX, closestY, GAP / 2, 0, 2 * Math.PI)
-    ctxHover.fillStyle = 'red'
+    ctxHover.fillStyle = pieceColor
     ctxHover.fill()
 }
 
@@ -71,8 +72,11 @@ function placing(e: MouseEvent) {
     // draw piece
     ctxPieces.beginPath()
     ctxPieces.arc(closestX, closestY, GAP / 2, 0, 2 * Math.PI)
-    ctxPieces.fillStyle = 'red'
+    ctxPieces.fillStyle = pieceColor
     ctxPieces.fill()
+
+    // set piece color
+    pieceColor = pieceColor === 'black' ? 'white' : 'black'
 }
 
 </script>
