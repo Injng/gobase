@@ -1,23 +1,37 @@
 <script lang="ts">
-    import { onMount } from 'svelte'
+    import { onMount, tick } from 'svelte'
     import { invoke } from '@tauri-apps/api/tauri'
 
     let board: HTMLCanvasElement
     let hover: HTMLCanvasElement
     let pieces: HTMLCanvasElement
-    const ROWS: number = 10
-    const COLS: number = 10
+    let ROWS: number
+    let COLS: number
     const GAP: number = 60
-    let width: number = (COLS + 2) * GAP
-    let height: number = (ROWS + 2) * GAP
-    let boardX: number = 0
-    let boardY: number = 0
+    let width: number
+    let height: number
+    let boardX: number
+    let boardY: number
     let ctxBoard: CanvasRenderingContext2D
     let ctxHover: CanvasRenderingContext2D
     let ctxPieces: CanvasRenderingContext2D
     let pieceColor: string = 'black'
+    let isInit: boolean = false
 
-    onMount(() => {
+    // initialize constants from backend
+    async function init() {
+        ROWS = await invoke('get_rows')
+        COLS = await invoke('get_cols')
+        width = (COLS + 2) * GAP
+        height = (ROWS + 2) * GAP
+        boardX = 0
+        boardY = 0
+        isInit = true
+        console.log("initialized")
+    }
+
+    onMount(async () => {
+        await init()
         ctxBoard = board.getContext('2d')
         ctxHover = hover.getContext('2d')
         ctxHover.globalAlpha = 0.3
@@ -91,3 +105,4 @@
 <canvas bind:this={board} class="absolute top-0 left-0" {width} {height}></canvas>
 <canvas bind:this={hover} {width} {height} class="absolute top-0 left-0"></canvas>
 <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-0 left-0"></canvas>
+

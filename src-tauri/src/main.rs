@@ -3,6 +3,9 @@
 
 use std::sync::Mutex;
 
+const ROWS: usize = 9;
+const COLS: usize = 9;
+
 #[derive(Clone)]
 enum Intersection {
     Empty,
@@ -18,6 +21,17 @@ struct Board {
 struct Group {
     intersections: Vec<(usize, usize)>,
     liberties: Vec<(usize, usize)>,
+}
+
+// get constants
+#[tauri::command]
+fn get_rows() -> usize {
+    ROWS
+}
+
+#[tauri::command]
+fn get_cols() -> usize {
+    COLS
 }
 
 // check if a given move is valid
@@ -46,7 +60,7 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> boo
 fn main() {
     tauri::Builder::default()
         .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; 19]; 19])})
-        .invoke_handler(tauri::generate_handler![validate])
+        .invoke_handler(tauri::generate_handler![get_rows, get_cols, validate])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
