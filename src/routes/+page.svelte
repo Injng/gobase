@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, tick } from 'svelte'
+    import { onMount } from 'svelte'
     import { invoke } from '@tauri-apps/api/tauri'
 
     let board: HTMLCanvasElement
@@ -22,6 +22,8 @@
     async function init() {
         ROWS = await invoke('get_rows')
         COLS = await invoke('get_cols')
+        ROWS -= 1
+        COLS -= 1
         width = (COLS + 2) * GAP
         height = (ROWS + 2) * GAP
         boardX = 0
@@ -90,6 +92,13 @@
         let color: number = pieceColor === 'black' ? 1 : 2
         let isValid: boolean = await invoke('validate', { x, y, color })
         if (!isValid) return
+        let toRemove: number[][] = await invoke('handle_move', { x, y, color })
+
+        // remove pieces
+        for (let i = 0; i < toRemove.length; i++) {
+            let [y, x] = toRemove[i]
+            ctxPieces.clearRect(boardX + GAP * x + GAP / 2, boardY + GAP * y + GAP / 2, GAP, GAP)
+        }
 
         // draw piece
         ctxPieces.beginPath()
