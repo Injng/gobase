@@ -7,7 +7,7 @@ use std::collections::HashSet;
 const ROWS: usize = 9;
 const COLS: usize = 9;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Intersection {
     Empty,
     Black(Group),
@@ -18,78 +18,71 @@ struct Board {
     pieces: Mutex<Vec<Vec<Intersection>>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Group {
     intersections: HashSet<(usize, usize)>,
     liberties: HashSet<(usize, usize)>,
 }
 
-// give coordinates, remove the liberties of adjacent groups
-fn remove_liberties(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
-    if x > 0 {
-        match &mut board[x - 1][y] {
-            Intersection::Black(ref mut group) => {
-                if color == 2 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            Intersection::White(ref mut group) => {
-                if color == 1 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            _ => (),
+// find if a intersection has any adjacent liberties and add them to the group
+fn find_liberties(x: usize, y: usize, board: &Vec<Vec<Intersection>>, libs: &mut HashSet<(usize, usize)>) {
+    let intersection = &board[x][y];
+    match intersection {
+        Intersection::Black(_) | Intersection::White(_) => {
+            if x > 0 && board[x - 1][y] == Intersection::Empty {
+                libs.insert((x - 1, y));
+            }
+            if x < ROWS - 1 && board[x + 1][y] == Intersection::Empty {
+                libs.insert((x + 1, y));
+            }
+            if y > 0 && board[x][y - 1] == Intersection::Empty {
+                libs.insert((x, y - 1));
+            }
+            if y < COLS - 1 && board[x][y + 1] == Intersection::Empty {
+                libs.insert((x, y + 1));
+            }
         }
+        _ => {}
     }
-    if x < ROWS - 1 {
-        match &mut board[x + 1][y] {
-            Intersection::Black(ref mut group) => {
-                if color == 2 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            Intersection::White(ref mut group) => {
-                if color == 1 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            _ => (),
-        }
+}
+
+// precondition: all intersections have been updated
+fn get_liberties(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
+    // initialize clean group with no liberties
+    let mut move_group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
+    if let Intersection::Black(ref mut group) = board[x][y] {
+        move_group.intersections = group.intersections.clone();
+    } else if let Intersection::White(ref mut group) = board[x][y] {
+        move_group.intersections = group.intersections.clone();
+    } else {
+        return;
     }
-    if y > 0 {
-        match &mut board[x][y - 1] {
-            Intersection::Black(ref mut group) => {
-                if color == 2 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            Intersection::White(ref mut group) => {
-                if color == 1 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            _ => (),
-        }
+
+    // find liberties for all intersections in the group
+    for i in move_group.intersections.iter() {
+        find_liberties(i.0, i.1, board, &mut move_group.liberties);
     }
-    if y < COLS - 1 {
-        match &mut board[x][y + 1] {
-            Intersection::Black(ref mut group) => {
-                if color == 2 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            Intersection::White(ref mut group) => {
-                if color == 1 {
-                    group.liberties.remove(&(x, y));
-                }
-            },
-            _ => (),
+
+    // set move_group for all intersections in the group
+    for i in move_group.intersections.iter() {
+        if color == 1 {
+            if let Intersection::Black(ref mut group) = board[i.0][i.1] {
+                group.liberties = move_group.liberties.clone();
+            }
+        } else {
+            if let Intersection::White(ref mut group) = board[i.0][i.1] {
+                group.liberties = move_group.liberties.clone();
+            }
         }
     }
 }
 
 // give coordinates, use flood fill to find all coordinates in the group
-fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>, group: &mut Group) {
+fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
+    // initialize group with empty intersections and no liberties
+    let mut group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
+
+    // use flood fill to find all intersections in the group
     let mut visited = vec![vec![false; COLS]; ROWS];
     let mut queue = vec![(x, y)];
     while !queue.is_empty() {
@@ -100,16 +93,11 @@ fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Inter
         }
         visited[x][y] = true;
 
-        // update intersections and liberties according to color
+        // update intersections according to color
         match board[x][y] {
-            Intersection::Empty => {
-                drop(group.liberties.insert((x, y)));
-                continue;
-            },
             Intersection::Black(_) => {
                 if color == 1 {
                     group.intersections.insert((x, y));
-                    remove_liberties(x, y, color, board);
                 } else {
                     continue;
                 }
@@ -117,11 +105,11 @@ fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Inter
             Intersection::White(_) => {
                 if color == 2 {
                     group.intersections.insert((x, y));
-                    remove_liberties(x, y, color, board);
                 } else {
                     continue;
                 }
             },
+            _ => continue,
         }
 
         // update queue for flood fill
@@ -129,6 +117,19 @@ fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Inter
         if x < ROWS - 1 { queue.push((x + 1, y)); }
         if y > 0 { queue.push((x, y - 1)); }
         if y < COLS - 1 { queue.push((x, y + 1)); }
+    }
+
+    // update for all intersections in the group
+    for i in group.intersections.iter() {
+        if color == 1 {
+            if let Intersection::Black(ref mut ref_group) = board[i.0][i.1] {
+                ref_group.intersections = group.intersections.clone();
+            }
+        } else {
+            if let Intersection::White(ref mut ref_group) = board[i.0][i.1] {
+                ref_group.intersections = group.intersections.clone();
+            }
+        }
     }
 }
 
@@ -148,109 +149,146 @@ fn get_cols() -> usize {
 fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> bool {
     let mut board = board.pieces.lock().unwrap();
     let intersection = &board[x][y];
+    let mut is_valid: bool;
+
+    // check for existing piece
     match intersection {
-        Intersection::Empty => true,
-        _ => false,
+        Intersection::Empty => is_valid = true,
+        _ => is_valid = false,
     }
+    if !is_valid { return is_valid; }
+
+    // prevent suicide by checking if group has any liberties
+    is_valid = false;
+    let mut check_liberty = |row: usize, col: usize| {
+        if board[row][col] == Intersection::Empty {
+            is_valid = true;
+        } else if matches!(board[row][col], Intersection::Black(_)) && color == 1 {
+            get_liberties(row, col, color, &mut board);
+            if let Intersection::Black(group) = &board[row][col] {
+                if group.liberties.len() > 1 {
+                    is_valid = true;
+                }
+            }
+        } else if matches!(board[row][col], Intersection::White(_)) && color == 2 {
+            get_liberties(row, col, color, &mut board);
+            if let Intersection::White(group) = &board[row][col] {
+                if group.liberties.len() > 1 {
+                    is_valid = true;
+                }
+            }
+        }
+    };
+    if x > 0 {
+        check_liberty(x - 1, y);
+    }
+    if x < ROWS - 1 {
+        check_liberty(x + 1, y);
+    }
+    if y > 0 {
+        check_liberty(x, y - 1);
+    }
+    if y < COLS - 1 {
+        check_liberty(x, y + 1);
+    }
+
+    // except if it results in the capture of another group
+    let mut check_capture = |row, col| {
+        let actual_color = match color {
+            1 => 2,
+            2 => 1,
+            _ => 0,
+        };
+        get_liberties(row, col, actual_color, &mut board);
+        match &board[row][col] {
+            Intersection::Black(group) => {
+                if actual_color == 1 && group.liberties.len() == 1 { 
+                    is_valid = true;
+                }
+            },
+            Intersection::White(group) => {
+                if actual_color == 2 && group.liberties.len() == 1 {
+                    is_valid = true;
+                }
+            },
+            _ => (),
+        }
+    };
+    if x > 0 {
+        check_capture(x - 1, y);
+    }
+    if x < ROWS - 1 {
+        check_capture(x + 1, y);
+    }
+    if y > 0 {
+        check_capture(x, y - 1);
+    }
+    if y < COLS - 1 {
+        check_capture(x, y + 1);
+    }
+
+    is_valid
 }
 
-// TODO: SUICIDE RULE
 // handle a move by returning a list of intersections to remove
 // precondition: move is valid
 #[tauri::command]
 fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> Vec<(usize, usize)> {
     let mut board = board.pieces.lock().unwrap();
-
-    // get and set intersections for the move
-    let empty_group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
-    let mut move_group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
-    if color == 1 { 
-        board[x][y] = Intersection::Black(empty_group); 
-    } else { 
-        board[x][y] = Intersection::White(empty_group); 
+    if color == 1 {
+        board[x][y] = Intersection::Black(Group { intersections: HashSet::new(), liberties: HashSet::new() });
+    } else {
+        board[x][y] = Intersection::White(Group { intersections: HashSet::new(), liberties: HashSet::new() });
     }
-    get_intersections(x, y, color, &mut board, &mut move_group);
-    // print out all intersections of move_group
-    println!("intersections: {:?}", move_group.intersections);
-    println!("liberties: {:?}", move_group.liberties);
 
-    if color == 1 { 
-        board[x][y] = Intersection::Black(move_group); 
-    } else { 
-        board[x][y] = Intersection::White(move_group); 
-    }
+    // update intersections and liberties for the move
+    get_intersections(x, y, color, &mut board);
+    get_liberties(x, y, color, &mut board);
 
     // get any pieces that need to be removed
     let mut to_remove: Vec<(usize, usize)> = vec![];
-    if x > 0 {
-        match &board[x - 1][y] {
+    let mut check_remove = |row: usize, col: usize| {
+        if board[row][col] == Intersection::Empty {
+            return;
+        }
+        let actual_color = match color {
+            1 => 2,
+            2 => 1,
+            _ => 0,
+        };
+        get_liberties(row, col, actual_color, &mut board);
+        match &board[row][col] {
             Intersection::Black(group) => {
-                if color == 2 && group.liberties.len() == 0 { 
-                    board[x - 1][y] = Intersection::Empty;
-                    to_remove.push((x - 1, y));
+                if actual_color == 1 && group.liberties.len() == 0 { 
+                    to_remove.extend(group.intersections.iter());
                 }
             },
             Intersection::White(group) => {
-                if color == 1 && group.liberties.len() == 0 {
-                    board[x - 1][y] = Intersection::Empty;
-                    to_remove.push((x - 1, y));
+                if actual_color == 2 && group.liberties.len() == 0 {
+                    to_remove.extend(group.intersections.iter());
                 }
             },
             _ => (),
         }
+    };
+    if x > 0 {
+        check_remove(x - 1, y);
     }
     if x < ROWS - 1 {
-        match &board[x + 1][y] {
-            Intersection::Black(group) => {
-                if color == 2 && group.liberties.len() == 0 {
-                    board[x + 1][y] = Intersection::Empty;
-                    to_remove.push((x + 1, y));
-                }
-            },
-            Intersection::White(group) => {
-                if color == 1 && group.liberties.len() == 0 {
-                    board[x + 1][y] = Intersection::Empty;
-                    to_remove.push((x + 1, y));
-                }
-            },
-            _ => (),
-        }
+        check_remove(x + 1, y);
     }
     if y > 0 {
-        match &board[x][y - 1] {
-            Intersection::Black(group) => {
-                if color == 2 && group.liberties.len() == 0 {
-                    board[x][y - 1] = Intersection::Empty;
-                    to_remove.push((x, y - 1));
-                }
-            },
-            Intersection::White(group) => {
-                if color == 1 && group.liberties.len() == 0 {
-                    board[x][y - 1] = Intersection::Empty;
-                    to_remove.push((x, y - 1));
-                }
-            },
-            _ => (),
-        }
+        check_remove(x, y - 1);
     }
     if y < COLS - 1 {
-        match &board[x][y + 1] {
-            Intersection::Black(group) => {
-                if color == 2 && group.liberties.len() == 0 {
-                    board[x][y + 1] = Intersection::Empty;
-                    to_remove.push((x, y + 1));
-                }
-            },
-            Intersection::White(group) => {
-                if color == 1 && group.liberties.len() == 0 {
-                    board[x][y + 1] = Intersection::Empty;
-                    to_remove.push((x, y + 1));
-                }
-            },
-            _ => (),
-        }
+        check_remove(x, y + 1);
     }
-    println!("to_remove: {:?}", to_remove);
+
+    // update the board to make removed intersections empty
+    for i in to_remove.iter() {
+        board[i.0][i.1] = Intersection::Empty;
+    }
+
     to_remove
 }
 
@@ -261,3 +299,4 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
