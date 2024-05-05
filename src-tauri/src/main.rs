@@ -1,137 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::Mutex;
+pub mod go;
+
 use std::collections::HashSet;
-
-const ROWS: usize = 9;
-const COLS: usize = 9;
-
-#[derive(Debug, Clone, PartialEq)]
-enum Intersection {
-    Empty,
-    Black(Group),
-    White(Group),
-}
-
-struct Board {
-    pieces: Mutex<Vec<Vec<Intersection>>>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct Group {
-    intersections: HashSet<(usize, usize)>,
-    liberties: HashSet<(usize, usize)>,
-}
-
-// find if a intersection has any adjacent liberties and add them to the group
-fn find_liberties(x: usize, y: usize, board: &Vec<Vec<Intersection>>, libs: &mut HashSet<(usize, usize)>) {
-    let intersection = &board[x][y];
-    match intersection {
-        Intersection::Black(_) | Intersection::White(_) => {
-            if x > 0 && board[x - 1][y] == Intersection::Empty {
-                libs.insert((x - 1, y));
-            }
-            if x < ROWS - 1 && board[x + 1][y] == Intersection::Empty {
-                libs.insert((x + 1, y));
-            }
-            if y > 0 && board[x][y - 1] == Intersection::Empty {
-                libs.insert((x, y - 1));
-            }
-            if y < COLS - 1 && board[x][y + 1] == Intersection::Empty {
-                libs.insert((x, y + 1));
-            }
-        }
-        _ => {}
-    }
-}
-
-// precondition: all intersections have been updated
-fn get_liberties(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
-    // initialize clean group with no liberties
-    let mut move_group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
-    if let Intersection::Black(ref mut group) = board[x][y] {
-        move_group.intersections = group.intersections.clone();
-    } else if let Intersection::White(ref mut group) = board[x][y] {
-        move_group.intersections = group.intersections.clone();
-    } else {
-        return;
-    }
-
-    // find liberties for all intersections in the group
-    for i in move_group.intersections.iter() {
-        find_liberties(i.0, i.1, board, &mut move_group.liberties);
-    }
-
-    // set move_group for all intersections in the group
-    for i in move_group.intersections.iter() {
-        if color == 1 {
-            if let Intersection::Black(ref mut group) = board[i.0][i.1] {
-                group.liberties = move_group.liberties.clone();
-            }
-        } else {
-            if let Intersection::White(ref mut group) = board[i.0][i.1] {
-                group.liberties = move_group.liberties.clone();
-            }
-        }
-    }
-}
-
-// give coordinates, use flood fill to find all coordinates in the group
-fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
-    // initialize group with empty intersections and no liberties
-    let mut group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
-
-    // use flood fill to find all intersections in the group
-    let mut visited = vec![vec![false; COLS]; ROWS];
-    let mut queue = vec![(x, y)];
-    while !queue.is_empty() {
-        // get current intersection from queue
-        let (x, y) = queue.pop().unwrap();
-        if visited[x][y] {
-            continue;
-        }
-        visited[x][y] = true;
-
-        // update intersections according to color
-        match board[x][y] {
-            Intersection::Black(_) => {
-                if color == 1 {
-                    group.intersections.insert((x, y));
-                } else {
-                    continue;
-                }
-            },
-            Intersection::White(_) => {
-                if color == 2 {
-                    group.intersections.insert((x, y));
-                } else {
-                    continue;
-                }
-            },
-            _ => continue,
-        }
-
-        // update queue for flood fill
-        if x > 0 { queue.push((x - 1, y)); }
-        if x < ROWS - 1 { queue.push((x + 1, y)); }
-        if y > 0 { queue.push((x, y - 1)); }
-        if y < COLS - 1 { queue.push((x, y + 1)); }
-    }
-
-    // update for all intersections in the group
-    for i in group.intersections.iter() {
-        if color == 1 {
-            if let Intersection::Black(ref mut ref_group) = board[i.0][i.1] {
-                ref_group.intersections = group.intersections.clone();
-            }
-        } else {
-            if let Intersection::White(ref mut ref_group) = board[i.0][i.1] {
-                ref_group.intersections = group.intersections.clone();
-            }
-        }
-    }
-}
+use std::sync::Mutex;
+use go::{get_intersections, get_liberties, simulate_move, Board, Group, Intersection, Hash, Zobrist, COLS, ROWS};
 
 // get constants
 #[tauri::command]
@@ -146,8 +20,9 @@ fn get_cols() -> usize {
 
 // check if a given move is valid
 #[tauri::command]
-fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> bool {
+fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: tauri::State<Hash>) -> bool {
     let mut board = board.pieces.lock().unwrap();
+    let mut hash = hash.zobrist.lock().unwrap();
     let intersection = &board[x][y];
     let mut is_valid: bool;
 
@@ -227,6 +102,11 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> boo
         check_capture(x, y + 1);
     }
 
+    // check for ko
+    if is_valid {
+        is_valid = simulate_move(x, y, color, &board, &mut hash);
+    }
+
     is_valid
 }
 
@@ -294,7 +174,8 @@ fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> 
 
 fn main() {
     tauri::Builder::default()
-        .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; 19]; 19])})
+        .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
+        .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
         .invoke_handler(tauri::generate_handler![get_rows, get_cols, validate, handle_move])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
