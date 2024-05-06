@@ -1,9 +1,9 @@
 use std::sync::Mutex;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 use rand::Rng;
 
-pub const ROWS: usize = 9;
-pub const COLS: usize = 9;
+pub const ROWS: usize = 19;
+pub const COLS: usize = 19;
 const EMPTY: usize = 0;
 const BLACK: usize = 1;
 const WHITE: usize = 2;

@@ -7,7 +7,7 @@
     let pieces: HTMLCanvasElement
     let ROWS: number
     let COLS: number
-    const GAP: number = 60
+    let GAP: number
     let width: number
     let height: number
     let boardX: number
@@ -24,12 +24,13 @@
         COLS = await invoke('get_cols')
         ROWS -= 1
         COLS -= 1
+        GAP = 60 - ROWS;
         width = (COLS + 2) * GAP
         height = (ROWS + 2) * GAP
-        boardX = 0
-        boardY = 0
+        let rect = board.getBoundingClientRect()
+        boardX = rect.left
+        boardY = rect.top
         isInit = true
-        console.log("initialized")
     }
 
     onMount(async () => {
@@ -114,4 +115,5 @@
 <canvas bind:this={board} class="absolute top-0 left-0" {width} {height}></canvas>
 <canvas bind:this={hover} {width} {height} class="absolute top-0 left-0"></canvas>
 <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-0 left-0"></canvas>
+
 
