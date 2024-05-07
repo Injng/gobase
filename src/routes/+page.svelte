@@ -17,6 +17,7 @@
     let ctxPieces: CanvasRenderingContext2D
     let pieceColor: string = 'black'
     let isInit: boolean = false
+    let isPlay: boolean = true
 
     // initialize constants from backend
     async function init() {
@@ -118,11 +119,37 @@
         ctxPieces.fill()
 
         // set piece color
-        pieceColor = pieceColor === 'black' ? 'white' : 'black'
+        if (isPlay) {
+            pieceColor = pieceColor === 'black' ? 'white' : 'black'
+        }
+    }
+
+    // change to black to play
+    function playBlack() {
+        pieceColor = 'black'
+        isPlay = true
+    }
+
+    // change to white to play
+    function playWhite() {
+        pieceColor = 'white'
+        isPlay = true
+    }
+
+    // change to set black stones layout
+    function setBlack() {
+        pieceColor = 'black'
+        isPlay = false
+    }
+
+    // change to set white stones layout
+    function setWhite() {
+        pieceColor = 'white'
+        isPlay = false
     }
 </script>
 
-<div class="grid grid-rows-2">
+<div class="grid grid-rows-[100px_auto] bg-slate-500 text-white">
     <div>
         <div>Header</div>
     </div>
@@ -133,7 +160,70 @@
             <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
             <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
         </div>
-        <div>Right</div>
+        <div>Right
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
+                <circle
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="path1"
+                    cx="20"
+                    cy="20"
+                    r="10" />
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
+                <circle
+                    style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="path1"
+                    cx="20"
+                    cy="20"
+                    r="10" />
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
+                <circle
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="path1"
+                    cx="20"
+                    cy="20"
+                    r="10" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                    id="rect1"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="33.037266"
+                    y="7.2474785" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                    id="rect1-5"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="10.456588"
+                    y="-36.335133"
+                    transform="rotate(90)" />
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
+                <circle
+                style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                id="path1"
+                cx="20"
+                cy="20"
+                r="10" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                    id="rect1"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="33.037266"
+                    y="7.2474785" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                    id="rect1-5"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="10.456588"
+                    y="-36.335133"
+                    transform="rotate(90)" />
+            </svg>
+        </div>
     </div>
 </div>
 
