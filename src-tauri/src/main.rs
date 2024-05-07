@@ -18,6 +18,14 @@ fn get_cols() -> usize {
     COLS
 }
 
+#[tauri::command]
+fn reset(board: tauri::State<Board>, hash: tauri::State<Hash>) {
+    let mut board = board.pieces.lock().unwrap();
+    let mut hash = hash.zobrist.lock().unwrap();
+    *board = vec![vec![Intersection::Empty; COLS]; ROWS];
+    *hash = Zobrist::new();
+}
+
 // check if a given move is valid
 #[tauri::command]
 fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: tauri::State<Hash>) -> bool {
@@ -102,10 +110,14 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
         check_capture(x, y + 1);
     }
 
+    println!("suicide: {}", is_valid);
+
     // check for ko
     if is_valid {
         is_valid = simulate_move(x, y, color, &board, &mut hash);
     }
+
+    println!("ko: {}", is_valid);
 
     is_valid
 }
@@ -176,8 +188,8 @@ fn main() {
     tauri::Builder::default()
         .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
         .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
-        .invoke_handler(tauri::generate_handler![get_rows, get_cols, validate, handle_move])
+        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, handle_move])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("error while running tauri application"); 
 }
 

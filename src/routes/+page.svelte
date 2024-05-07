@@ -24,13 +24,10 @@
         COLS = await invoke('get_cols')
         ROWS -= 1
         COLS -= 1
-        GAP = 60 - ROWS;
+        //GAP = 60 - ROWS;
+        GAP = 40;
         width = (COLS + 2) * GAP
         height = (ROWS + 2) * GAP
-        let rect = board.getBoundingClientRect()
-        boardX = rect.left
-        boardY = rect.top
-        isInit = true
     }
 
     onMount(async () => {
@@ -57,13 +54,26 @@
             y += GAP
         }
         ctxBoard.stroke()
+
+        // reset board
+        await invoke('reset')
     })
 
     // show transparent shadow of piece when hovering
     function hovering(e: MouseEvent) {
+        // initialize board coordinates
+        if (!isInit) {
+            let rect = board.getBoundingClientRect()
+            boardX = rect.left
+            boardY = rect.top
+            isInit = true
+        }
+
         // set closest coordinates for piece
         let closestX: number = Math.round((e.clientX - boardX) / GAP) * GAP
         let closestY: number = Math.round((e.clientY - boardY) / GAP) * GAP
+        console.log!(boardX)
+        console.log!(boardY)
 
         // cap closestX and closestY
         closestX = Math.min(GAP + GAP * COLS, Math.max(GAP, closestX))
@@ -98,7 +108,7 @@
         // remove pieces
         for (let i = 0; i < toRemove.length; i++) {
             let [y, x] = toRemove[i]
-            ctxPieces.clearRect(boardX + GAP * x + GAP / 2, boardY + GAP * y + GAP / 2, GAP, GAP)
+            ctxPieces.clearRect(GAP * x + GAP / 2, GAP * y + GAP / 2, GAP, GAP)
         }
 
         // draw piece
@@ -112,8 +122,18 @@
     }
 </script>
 
-<canvas bind:this={board} class="absolute top-0 left-0" {width} {height}></canvas>
-<canvas bind:this={hover} {width} {height} class="absolute top-0 left-0"></canvas>
-<canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-0 left-0"></canvas>
-
+<div class="grid grid-rows-2">
+    <div>
+        <div>Header</div>
+    </div>
+    <div class="grid grid-cols-[2%_auto_2%]">
+        <div>Left</div>
+        <div class="relative">
+            <canvas bind:this={board} class="absolute top-1/2 left-1/2 transform -translate-x-1/2" {width} {height}></canvas>
+            <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
+            <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
+        </div>
+        <div>Right</div>
+    </div>
+</div>
 
