@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use std::collections::HashSet;
 use rand::Rng;
+use crate::game::Game;
 
 pub const ROWS: usize = 19;
 pub const COLS: usize = 19;
@@ -13,6 +14,10 @@ pub enum Intersection {
     Empty,
     Black(Group),
     White(Group),
+}
+
+pub struct Tree {
+    pub game: Mutex<Game>,
 }
 
 pub struct Board {
@@ -211,8 +216,101 @@ pub fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<I
     }
 }
 
+// simulate the validation process
+pub fn simulate_val(x: usize, y: usize, color: usize, mut board: Vec<Vec<Intersection>>, mut hash: Zobrist) -> bool {
+    let intersection = &board[x][y];
+    let mut is_valid: bool;
+
+    // check for existing piece
+    match intersection {
+        Intersection::Empty => is_valid = true,
+        _ => is_valid = false,
+    }
+    if !is_valid { return is_valid; }
+
+    // prevent suicide by checking if group has any liberties
+    is_valid = false;
+    let mut check_liberty = |row: usize, col: usize| {
+        if board[row][col] == Intersection::Empty {
+            is_valid = true;
+        } else if matches!(board[row][col], Intersection::Black(_)) && color == 1 {
+            get_liberties(row, col, color, &mut board);
+            if let Intersection::Black(group) = &board[row][col] {
+                if group.liberties.len() > 1 {
+                    is_valid = true;
+                }
+            }
+        } else if matches!(board[row][col], Intersection::White(_)) && color == 2 {
+            get_liberties(row, col, color, &mut board);
+            if let Intersection::White(group) = &board[row][col] {
+                if group.liberties.len() > 1 {
+                    is_valid = true;
+                }
+            }
+        }
+    };
+    if x > 0 {
+        check_liberty(x - 1, y);
+    }
+    if x < ROWS - 1 {
+        check_liberty(x + 1, y);
+    }
+    if y > 0 {
+        check_liberty(x, y - 1);
+    }
+    if y < COLS - 1 {
+        check_liberty(x, y + 1);
+    }
+
+    // except if it results in the capture of another group
+    let mut check_capture = |row, col| {
+        let actual_color = match color {
+            1 => 2,
+            2 => 1,
+            _ => 0,
+        };
+        get_liberties(row, col, actual_color, &mut board);
+        match &board[row][col] {
+            Intersection::Black(group) => {
+                if actual_color == 1 && group.liberties.len() == 1 {
+                    is_valid = true;
+                }
+            },
+            Intersection::White(group) => {
+                if actual_color == 2 && group.liberties.len() == 1 {
+                    is_valid = true;
+                }
+            },
+            _ => (),
+        }
+    };
+    if x > 0 {
+        check_capture(x - 1, y);
+    }
+    if x < ROWS - 1 {
+        check_capture(x + 1, y);
+    }
+    if y > 0 {
+        check_capture(x, y - 1);
+    }
+    if y < COLS - 1 {
+        check_capture(x, y + 1);
+    }
+
+    println!("suicide: {}", is_valid);
+
+    // check for ko
+    if is_valid {
+        is_valid = simulate_ko(x, y, color, &board, &mut hash);
+    }
+
+    println!("ko: {}", is_valid);
+
+    is_valid
+}
+
 // simulate a move to check for ko
-pub fn simulate_move(x: usize, y: usize, color: usize, board: &Vec<Vec<Intersection>>, hash: &mut Zobrist) -> bool {
+pub fn simulate_ko(x: usize, y: usize, color: usize, board: &Vec<Vec<Intersection>>, hash: &mut Zobrist) -> bool {
     // simulate the move
     let mut sim_board = board.clone();
     if color == 1 {
@@ -270,5 +368,62 @@ pub fn simulate_move(x: usize, y: usize, color: usize, board: &Vec<Vec<Intersect
     // check for ko
     let is_ko = hash.update(&sim_board);
     is_ko
+}
+
+// simulate a move on a board
+pub fn simulate_move(x: usize, y: usize, color: usize, mut board: Vec<Vec<Intersection>>) {
+    if color == 1 {
+        board[x][y] = Intersection::Black(Group { intersections: HashSet::new(), liberties: HashSet::new() });
+    } else {
+        board[x][y] = Intersection::White(Group { intersections: HashSet::new(), liberties: HashSet::new() });
+    }
+
+    // update intersections and liberties for the move
+    get_intersections(x, y, color, &mut board);
+    get_liberties(x, y, color, &mut board);
+
+    // get any pieces that need to be removed
+    let mut to_remove: Vec<(usize, usize)> = vec![];
+    let mut check_remove = |row: usize, col: usize| {
+        if board[row][col] == Intersection::Empty {
+            return;
+        }
+        let actual_color = match color {
+            1 => 2,
+            2 => 1,
+            _ => 0,
+        };
+        get_liberties(row, col, actual_color, &mut board);
+        match &board[row][col] {
+            Intersection::Black(group) => {
+                if actual_color == 1 && group.liberties.len() == 0 {
+                    to_remove.extend(group.intersections.iter());
+                }
+            },
+            Intersection::White(group) => {
+                if actual_color == 2 && group.liberties.len() == 0 {
+                    to_remove.extend(group.intersections.iter());
+                }
+            },
+            _ => (),
+        }
+    };
+    if x > 0 {
+        check_remove(x - 1, y);
+    }
+    if x < ROWS - 1 {
+        check_remove(x + 1, y);
+    }
+    if y > 0 {
+        check_remove(x, y - 1);
+    }
+    if y < COLS - 1 {
+        check_remove(x, y + 1);
+    }
+
+    // update the board to make removed intersections empty
+    for i in to_remove.iter() {
+        board[i.0][i.1] = Intersection::Empty;
+    }
 }
 

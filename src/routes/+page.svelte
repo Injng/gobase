@@ -73,8 +73,6 @@
         // set closest coordinates for piece
         let closestX: number = Math.round((e.clientX - boardX) / GAP) * GAP
         let closestY: number = Math.round((e.clientY - boardY) / GAP) * GAP
-        console.log!(boardX)
-        console.log!(boardY)
 
         // cap closestX and closestY
         closestX = Math.min(GAP + GAP * COLS, Math.max(GAP, closestX))
@@ -121,6 +119,60 @@
         // set piece color
         if (isPlay) {
             pieceColor = pieceColor === 'black' ? 'white' : 'black'
+        }
+    }
+
+    // handle user left arrow to undo
+    async function undo() {
+        let change: number[][][] = await invoke('handle_undo')
+
+        // remove pieces
+        for (let i = 0; i < change[1].length; i++) {
+            let [y, x] = change[1][i]
+            ctxPieces.clearRect(GAP * x + GAP / 2, GAP * y + GAP / 2, GAP, GAP)
+        }
+
+        // add pieces
+        for (let i = 0; i < change[0].length; i++) {
+            let [y, x, color] = change[0][i]
+            ctxPieces.beginPath()
+            ctxPieces.arc(GAP * x + GAP, GAP * y + GAP, GAP / 2, 0, 2 * Math.PI)
+            ctxPieces.fillStyle = color === 1 ? 'black' : 'white'
+            ctxPieces.fill()
+        }
+    }
+
+    // handle user right arrow to redo
+    async function redo() {
+        let change: number[][][] = await invoke('handle_redo')
+
+        // remove pieces
+        for (let i = 0; i < change[1].length; i++) {
+            let [y, x] = change[1][i]
+            ctxPieces.clearRect(GAP * x + GAP / 2, GAP * y + GAP / 2, GAP, GAP)
+        }
+
+        // add pieces
+        for (let i = 0; i < change[0].length; i++) {
+            let [y, x, color] = change[0][i]
+            ctxPieces.beginPath()
+            ctxPieces.arc(GAP * x + GAP, GAP * y + GAP, GAP / 2, 0, 2 * Math.PI)
+            ctxPieces.fillStyle = color === 1 ? 'black' : 'white'
+            ctxPieces.fill()
+        }
+    }
+
+
+    // handle key presses
+    async function handleKey(e: KeyboardEvent) {
+        console.log!(e.key)
+        switch (e.key) {
+            case 'ArrowLeft':
+                await undo()
+                break
+            case 'ArrowRight':
+                await redo()
+                break
         }
     }
 
@@ -226,4 +278,6 @@
         </div>
     </div>
 </div>
+
+<svelte:window on:keydown|preventDefault={handleKey} />
 

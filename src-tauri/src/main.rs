@@ -2,10 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 pub mod go;
+pub mod game;
 
 use std::collections::HashSet;
-use std::sync::Mutex;
-use go::{get_intersections, get_liberties, simulate_move, Board, Group, Intersection, Hash, Zobrist, COLS, ROWS};
+use std::sync::{Arc, Mutex};
+use go::{get_intersections, get_liberties, simulate_ko, Board, Group, Tree, Intersection, Hash, Zobrist, COLS, ROWS};
+use game::{Game, Node};
 
 // get constants
 #[tauri::command]
@@ -114,7 +116,7 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
 
     // check for ko
     if is_valid {
-        is_valid = simulate_move(x, y, color, &board, &mut hash);
+        is_valid = simulate_ko(x, y, color, &board, &mut hash);
     }
 
     println!("ko: {}", is_valid);
@@ -125,7 +127,7 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
 // handle a move by returning a list of intersections to remove
 // precondition: move is valid
 #[tauri::command]
-fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> Vec<(usize, usize)> {
+fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize)> {
     let mut board = board.pieces.lock().unwrap();
     if color == 1 {
         board[x][y] = Intersection::Black(Group { intersections: HashSet::new(), liberties: HashSet::new() });
@@ -181,14 +183,118 @@ fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>) -> 
         board[i.0][i.1] = Intersection::Empty;
     }
 
+    // update the game nodes
+    let mut game = tree.game.lock().unwrap();
+    game.add_node(board.clone(), (x, y), color);
+
     to_remove
 }
+
+// handle an undo move, and return (added_pieces, removed_pieces)
+#[tauri::command]
+fn handle_undo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
+    let mut change_board = board.pieces.lock().unwrap();
+    let mut game = tree.game.lock().unwrap();
+
+    // update board to the parent node of current node
+    let mut added_pieces = vec![];
+    let mut removed_pieces = vec![];
+    let mut parent_node = Arc::clone(&game.curr);
+    {
+        let curr = game.curr.lock().unwrap();
+        if let Node::Move { parent, .. } = &*curr {
+            if let Some(parent) = parent {
+                parent_node = Arc::clone(&parent);
+                let parent = parent.lock().unwrap();
+                match &*parent {
+                    Node::Move { board, .. } => {
+                        // get differences between the boards
+                        for i in 0..ROWS {
+                            for j in 0..COLS {
+                                if board[i][j] != change_board[i][j] {
+                                    if board[i][j] == Intersection::Empty {
+                                        removed_pieces.push((i, j));
+                                    } else {
+                                        added_pieces.push((i, j, match &board[i][j] {
+                                            Intersection::Black(_) => 1,
+                                            Intersection::White(_) => 2,
+                                            _ => 0,
+                                        }));
+                                    }
+                                }
+                            }
+                        }
+                        // update the actual board
+                        *change_board = board.clone();
+                    },
+                    _ => (),
+                }
+            }
+        }
+    }
+    game.curr = Arc::clone(&parent_node);
+
+    (added_pieces, removed_pieces)
+}
+
+// handle a redo move, and return (added_pieces, removed_pieces)
+#[tauri::command]
+fn handle_redo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
+    let mut change_board = board.pieces.lock().unwrap();
+    let mut game = tree.game.lock().unwrap();
+
+    // update board to the last child node of current node
+    // TODO: allow user to select variation of child node
+    let mut added_pieces = vec![];
+    let mut removed_pieces = vec![];
+    let mut child_node = Arc::clone(&game.curr);
+    {
+        let curr = game.curr.lock().unwrap();
+        if let Node::Move { children, .. } = &*curr {
+            // see if there are any children to redo
+            if children.len() == 0 {
+                return (added_pieces, removed_pieces);
+            }
+            child_node = Arc::clone(&children[children.len() - 1]);
+            let children = children[children.len() - 1].lock().unwrap();
+            match &*children {
+                Node::Move { board, .. } => {
+                    // get differences between the boards
+                    for i in 0..ROWS {
+                        for j in 0..COLS {
+                            if board[i][j] != change_board[i][j] {
+                                if board[i][j] == Intersection::Empty {
+                                    removed_pieces.push((i, j));
+                                } else {
+                                    added_pieces.push((i, j, match &board[i][j] {
+                                        Intersection::Black(_) => 1,
+                                        Intersection::White(_) => 2,
+                                        _ => 0,
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                    // update the actual board
+                    *change_board = board.clone();
+                },
+                _ => (),
+            }
+        }
+    }
+    game.curr = Arc::clone(&child_node);
+
+    (added_pieces, removed_pieces)
+}
+ 
+
 
 fn main() {
     tauri::Builder::default()
         .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
         .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
-        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, handle_move])
+        .manage(Tree { game: Mutex::new(Game::new()) })
+        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, handle_move, handle_undo, handle_redo])
         .run(tauri::generate_context!())
         .expect("error while running tauri application"); 
 }
