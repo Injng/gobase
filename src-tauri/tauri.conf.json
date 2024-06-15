@@ -55,11 +55,11 @@
     },
     "windows": [
       {
-        "fullscreen": false,
+        "title": "GoBase",
+        "width": 800,
         "height": 600,
         "resizable": true,
-        "title": "GoBase",
-        "width": 800
+        "fullscreen": false
       }
     ]
   }

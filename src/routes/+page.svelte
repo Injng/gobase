@@ -33,6 +33,9 @@
 
     onMount(async () => {
         await init()
+        window.addEventListener("resize", handleResize); {
+            console.log("Window resized to: " + window.innerWidth + "x" + window.innerHeight);
+        }
         ctxBoard = board.getContext('2d')
         ctxHover = hover.getContext('2d')
         ctxHover.globalAlpha = 0.3
@@ -198,6 +201,11 @@
     function setWhite() {
         pieceColor = 'white'
         isPlay = false
+    }
+    function handleResize() {
+        let rect = board.getBoundingClientRect();
+        boardX = rect.left;
+        boardY = rect.top;
     }
 </script>
 
