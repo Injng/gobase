@@ -213,14 +213,39 @@
     <div>
         <div>Header</div>
     </div>
-    <div class="grid grid-cols-[2%_auto_2%]">
-        <div>Left</div>
+    <div class="grid grid-cols-[20%_auto_20%]">
+        <div>Left
+            <svg width="20" height="20" role="button" tabindex="-1" on:click={undo} on:keydown={() => {}}>
+                <circle cx="10" cy="10" r="10" fill="lightblue" />
+                <text x="50%" y="50%" text-anchor="middle" fill="black" font-size="20px" dy=".3em">U</text>
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={redo} on:keydown={() => {}}>
+                <circle
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                        id="path1"
+                        cx="20"
+                        cy="20"
+                        r="10"
+                />
+                <rect
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                        id="rect1"
+                        width="0.012675161"
+                        height="6.5395594"
+                        x="33.037266"
+                        y="7.2474785"
+                />
+            </svg>
+        </div>
+
+
         <div class="relative">
             <canvas bind:this={board} class="absolute top-1/2 left-1/2 transform -translate-x-1/2" {width} {height}></canvas>
             <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
             <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
         </div>
         <div>Right
+
             <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
                 <circle
                     style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
