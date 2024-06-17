@@ -214,28 +214,25 @@
         <div>Header</div>
     </div>
     <div class="grid grid-cols-[20%_auto_20%]">
-        <div>Left
-            <svg width="20" height="20" role="button" tabindex="-1" on:click={undo} on:keydown={() => {}}>
-                <circle cx="10" cy="10" r="10" fill="lightblue" />
-                <text x="50%" y="50%" text-anchor="middle" fill="black" font-size="20px" dy=".3em">U</text>
-            </svg>
-            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={redo} on:keydown={() => {}}>
-                <circle
-                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                        id="path1"
-                        cx="20"
-                        cy="20"
-                        r="10"
-                />
+        <div style="display: flex; justify-content: space-between;">
+            <svg style = "margin-right: 20px;" width="50%" height="50" role="button" tabindex="-1" on:click={undo} on:keydown={() => {}}>
                 <rect
-                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                        style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                         id="rect1"
-                        width="0.012675161"
-                        height="6.5395594"
-                        x="33.037266"
-                        y="7.2474785"
+                        width="100%"
+                        height="50"
                 />
+                <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">Undo</text>
             </svg>
+           <svg style = "margin-left: 20 px" width="50%" height="50" role="button" tabindex="-1" on:click={redo} on:keydown={() => {}}>
+             <rect
+                    style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="rect1"
+                    width="100%"
+                    height="50"
+             />
+               <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">Redo</text>
+           </svg>
         </div>
 
 
@@ -254,6 +251,7 @@
                     cy="20"
                     r="10" />
             </svg>
+
             <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
                 <circle
                     style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
@@ -262,6 +260,7 @@
                     cy="20"
                     r="10" />
             </svg>
+
             <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
                 <circle
                     style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
@@ -285,6 +284,7 @@
                     y="-36.335133"
                     transform="rotate(90)" />
             </svg>
+
             <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
                 <circle
                 style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
