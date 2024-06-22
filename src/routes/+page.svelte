@@ -20,7 +20,13 @@
     let pieceColor: string = 'black'
     let isInit: boolean = false
     let isPlay: boolean = true
+    let note = '';
+    let notes = [];
 
+    function addNote() {
+        notes.push(note);
+        note = '';
+    }
     // initialize constants from backend
     async function init() {
         ROWS = await invoke('get_rows')
@@ -217,21 +223,25 @@
     </div>
     <div class="grid grid-cols-[20%_60%_20%]">
         <div style="display: flex; justify-content: space-between;">
-            <svg style = "margin-right: 10px;" width="50%" height="50" role="button" tabindex="-1" on:click={undo} on:keydown={() => {}}>
+            <svg class = "hover-effect" style = "margin-right: 10px;" width="50%" height="50" role="button" tabindex="-1" on:click={undo} on:keydown={() => {}}>
                 <rect
-                        style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                        style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                         id="rect1"
                         width="100%"
                         height="50"
+                        rx="10"
+                        ry="10"
                 />
                 <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">Undo</text>
             </svg>
-           <svg style = "margin-left: 20 px" width="50%" height="50" role="button" tabindex="-1" on:click={redo} on:keydown={() => {}}>
+           <svg class = "hover-effect" style = "margin-left: 20 px" width="50%" height="50" role="button" tabindex="-1" on:click={redo} on:keydown={() => {}}>
              <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                     id="rect1"
                     width="100%"
                     height="50"
+                    rx="10"
+                    ry="10"
              />
                <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">Redo</text>
            </svg>
@@ -248,10 +258,12 @@
 
         <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
             <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                     id="rect1"
                     width="100%"
                     height="50"
+                    rx="10"
+                    ry="10"
             />
             <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">PlayBlack</text>
         </svg>
@@ -260,10 +272,12 @@
 
         <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
             <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                     id="rect1"
                     width="100%"
                     height="50"
+                    rx="10"
+                    ry="10"
             />
             <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">playWhite</text>
         </svg>
@@ -271,19 +285,23 @@
 
         <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
             <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                     id="rect1"
                     width="100%"
                     height="50"
+                    rx="10"
+                    ry="10"
             />
             <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">SetBlack</text>
         </svg>
             <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
             <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                     id="rect1"
                     width="100%"
                     height="50"
+                    rx="10"
+                    ry="10"
             />
             <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">SetWhite</text>
         </svg>
@@ -291,18 +309,29 @@
     </div>
 </div>
 
-<div class="content-area">
-    <!-- Your content goes here -->
+
+
+<div class="note-section">
+    <h2>Note Taking Section</h2>
+    <textarea bind:value={note} placeholder="Write your note here..."></textarea>
+    <button on:click={addNote}>Add Note</button>
+    <div class="notes-display">
+        <h3>Your Notes:</h3>
+        {#each notes as note, i}
+            <p>{i + 1}. {note}</p>
+        {/each}
+    </div>
 </div>
 
 <style>
     @import './styles.css';
-    .content-area {
+    .note-section {
         width: 20%;
-        height: 200px;
-        background-color: #f0f0f0;
         padding: 20px;
         box-sizing: border-box;
+    }
+    .notes-display {
+        margin-top: 20px;
     }
 </style>
 

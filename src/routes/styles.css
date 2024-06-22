@@ -1,3 +1,4 @@
 .hover-effect:hover {
-    fill-opacity: 0;
+    fill-opacity: 30%;
+    filter: brightness(150%);
 }
