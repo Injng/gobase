@@ -26,7 +26,6 @@
  * ```
  */
 declare module '$env/static/private' {
-	export const GJS_DEBUG_TOPICS: string;
 	export const USER: string;
 	export const npm_config_user_agent: string;
 	export const TAURI_DEBUG: string;
@@ -54,6 +53,7 @@ declare module '$env/static/private' {
 	export const IM_CONFIG_PHASE: string;
 	export const WAYLAND_DISPLAY: string;
 	export const LOGNAME: string;
+	export const DESKTOP_AUTOSTART_ID: string;
 	export const JOURNAL_STREAM: string;
 	export const TAURI_FAMILY: string;
 	export const _: string;
@@ -89,7 +89,6 @@ declare module '$env/static/private' {
 	export const npm_package_version: string;
 	export const GDMSESSION: string;
 	export const QT_ACCESSIBILITY: string;
-	export const GJS_DEBUG_OUTPUT: string;
 	export const QT_IM_MODULE: string;
 	export const npm_config_globalconfig: string;
 	export const npm_config_init_module: string;
@@ -134,7 +133,6 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		GJS_DEBUG_TOPICS: string;
 		USER: string;
 		npm_config_user_agent: string;
 		TAURI_DEBUG: string;
@@ -162,6 +160,7 @@ declare module '$env/dynamic/private' {
 		IM_CONFIG_PHASE: string;
 		WAYLAND_DISPLAY: string;
 		LOGNAME: string;
+		DESKTOP_AUTOSTART_ID: string;
 		JOURNAL_STREAM: string;
 		TAURI_FAMILY: string;
 		_: string;
@@ -197,7 +196,6 @@ declare module '$env/dynamic/private' {
 		npm_package_version: string;
 		GDMSESSION: string;
 		QT_ACCESSIBILITY: string;
-		GJS_DEBUG_OUTPUT: string;
 		QT_IM_MODULE: string;
 		npm_config_globalconfig: string;
 		npm_config_init_module: string;

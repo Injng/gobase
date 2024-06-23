@@ -20,6 +20,7 @@
     let pieceColor: string = 'black'
     let isInit: boolean = false
     let isPlay: boolean = true
+    let isToggled = false;
     let note = '';
     let notes = [];
 
@@ -323,8 +324,21 @@
     </div>
 </div>
 
+<div>
+    <input type="checkbox" id="mode-toggle" class="toggle" bind:checked={isToggled}/>
+    <div class = "container">
+        <div class = "background light"></div>
+        <div class = "background dark"></div>
+        <label for="mode-toggle" class="ball">
+            <svg  width="70" height="70" viewBox=" 0 0 70 70 " fill="none">
+                <circle cx="35" cy="35" r="30" fill="white" />
+            </svg>
+        </label>
+    </div>
+</div>
 <style>
     @import './styles.css';
+
     .note-section {
         width: 20%;
         padding: 20px;
