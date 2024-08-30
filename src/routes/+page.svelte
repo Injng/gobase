@@ -1,5 +1,3 @@
-
-
 <script lang="ts">
     import { onMount } from 'svelte'
     import { invoke } from '@tauri-apps/api/tauri'
@@ -20,21 +18,13 @@
     let pieceColor: string = 'black'
     let isInit: boolean = false
     let isPlay: boolean = true
-    let isToggled = false;
-    let note = '';
-    let notes = [];
 
-    function addNote() {
-        notes.push(note);
-        note = '';
-    }
     // initialize constants from backend
     async function init() {
         ROWS = await invoke('get_rows')
         COLS = await invoke('get_cols')
         ROWS -= 1
         COLS -= 1
-        //GAP = 60 - ROWS;
         GAP = 40;
         width = (COLS + 2) * GAP
         height = (ROWS + 2) * GAP
@@ -174,7 +164,6 @@
         }
     }
 
-
     // handle key presses
     async function handleKey(e: KeyboardEvent) {
         console.log!(e.key)
@@ -211,6 +200,8 @@
         pieceColor = 'white'
         isPlay = false
     }
+
+    // handle resizing of window
     function handleResize() {
         let rect = board.getBoundingClientRect();
         boardX = rect.left;
@@ -218,138 +209,84 @@
     }
 </script>
 
+
 <div class="grid grid-rows-[100px_auto] bg-slate-500 text-white">
     <div>
         <div>Header</div>
     </div>
-    <div class="grid grid-cols-[20%_60%_20%]">
-        <div style="display: flex; justify-content: space-between;">
-            <svg class = "hover-effect" style = "margin-right: 10px;" width="50%" height="50" role="button" tabindex="-1" on:click={undo} on:keydown={() => {}}>
-                <rect
-                        style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                        id="rect1"
-                        width="100%"
-                        height="50"
-                        rx="10"
-                        ry="10"
-                />
-                <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">Undo</text>
-            </svg>
-           <svg class = "hover-effect" style = "margin-left: 20 px" width="50%" height="50" role="button" tabindex="-1" on:click={redo} on:keydown={() => {}}>
-             <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                    id="rect1"
-                    width="100%"
-                    height="50"
-                    rx="10"
-                    ry="10"
-             />
-               <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">Redo</text>
-           </svg>
-        </div>
-
-
+    <div class="grid grid-cols-[3%_auto_3%]">
+        <div>Left</div>
         <div class="relative">
             <canvas bind:this={board} class="absolute top-1/2 left-1/2 transform -translate-x-1/2" {width} {height}></canvas>
             <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
             <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-
-
-        <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
-            <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+        <div>Right
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
+                <circle
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="path1"
+                    cx="20"
+                    cy="20"
+                    r="10" />
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
+                <circle
+                    style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="path1"
+                    cx="20"
+                    cy="20"
+                    r="10" />
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
+                <circle
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    id="path1"
+                    cx="20"
+                    cy="20"
+                    r="10" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
                     id="rect1"
-                    width="100%"
-                    height="50"
-                    rx="10"
-                    ry="10"
-            />
-            <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">PlayBlack</text>
-        </svg>
-
-
-
-        <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
-            <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="33.037266"
+                    y="7.2474785" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                    id="rect1-5"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="10.456588"
+                    y="-36.335133"
+                    transform="rotate(90)" />
+            </svg>
+            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
+                <circle
+                style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                id="path1"
+                cx="20"
+                cy="20"
+                r="10" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
                     id="rect1"
-                    width="100%"
-                    height="50"
-                    rx="10"
-                    ry="10"
-            />
-            <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">playWhite</text>
-        </svg>
-
-
-        <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
-            <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                    id="rect1"
-                    width="100%"
-                    height="50"
-                    rx="10"
-                    ry="10"
-            />
-            <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">SetBlack</text>
-        </svg>
-            <svg class = "hover-effect" style = "margin-right: 10px;" width="25%" height="50" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
-            <rect
-                    style="fill:#000000;fill-opacity:30%;stroke:none;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                    id="rect1"
-                    width="100%"
-                    height="50"
-                    rx="10"
-                    ry="10"
-            />
-            <text x="50%" y="20px" dominant-baseline="middle" text-anchor="middle" fill="#fffbfb">SetWhite</text>
-        </svg>
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="33.037266"
+                    y="7.2474785" />
+                <rect
+                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                    id="rect1-5"
+                    width="0.012675161"
+                    height="6.5395594"
+                    x="10.456588"
+                    y="-36.335133"
+                    transform="rotate(90)" />
+            </svg>
         </div>
     </div>
 </div>
-
-
-
-<div class="note-section">
-    <h2>Note Taking Section</h2>
-    <textarea bind:value={note} placeholder="Write your note here..."></textarea>
-    <button on:click={addNote}>Add Note</button>
-    <div class="notes-display">
-        <h3>Your Notes:</h3>
-        {#each notes as note, i}
-            <p>{i + 1}. {note}</p>
-        {/each}
-    </div>
-</div>
-
-<div>
-    <input type="checkbox" id="mode-toggle" class="toggle" bind:checked={isToggled}/>
-    <div class = "container">
-        <div class = "background light"></div>
-        <div class = "background dark"></div>
-        <label for="mode-toggle" class="ball">
-            <svg  width="70" height="70" viewBox=" 0 0 70 70 " fill="none">
-                <circle cx="35" cy="35" r="30" fill="white" />
-            </svg>
-        </label>
-    </div>
-</div>
-<style>
-    @import './styles.css';
-
-    .note-section {
-        width: 20%;
-        padding: 20px;
-        box-sizing: border-box;
-    }
-    .notes-display {
-        margin-top: 20px;
-    }
-</style>
-
-
 
 <svelte:window on:keydown|preventDefault={handleKey} />
 
