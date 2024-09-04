@@ -4,8 +4,8 @@ use crate::go::Intersection;
 pub const ROWS: usize = 19;
 pub const COLS: usize = 19;
 const EMPTY: usize = 0;
-const BLACK: usize = 1;
-const WHITE: usize = 2;
+pub const BLACK: usize = 1;
+pub const WHITE: usize = 2;
 
 pub enum Node {
     Move {
@@ -33,7 +33,7 @@ impl Node {
             children: vec![],
         }
     }
-    
+
     pub fn end(board: Vec<Vec<Intersection>>, piece: (usize, usize), color: usize, parent: Option<Arc<Mutex<Node>>>) -> Node {
         Node::End {
             board,
@@ -50,19 +50,6 @@ pub struct Game {
 }
 
 impl Game {
-    /* TODO: parse sgf
-    pub fn from_sgf(sgf: &str) {
-        // strip first and last parantheses
-        let mut loaded = sgf.chars();
-        loaded.next();
-        loaded.next();
-        loaded.next_back();
-        
-        // get tokens
-        let tokens = loaded.as_str().split(";");
-    }
-    */
-
     pub fn new() -> Game {
         let board = vec![vec![Intersection::Empty; COLS]; ROWS];
         let root = Arc::new(Mutex::new(Node::new(board, (0, 0), BLACK, None)));
@@ -70,6 +57,7 @@ impl Game {
         Game { root, curr }
     }
 
+    /// Add a node to the game tree
     pub fn add_node(&mut self, board: Vec<Vec<Intersection>>, piece: (usize, usize), color: usize) {
         let node = Arc::new(Mutex::new(Node::new(board, piece, color, Some(Arc::clone(&self.curr)))));
         {
@@ -84,4 +72,3 @@ impl Game {
         self.curr = node;
     }
 }
-

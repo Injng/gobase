@@ -7,7 +7,7 @@ pub mod game;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use go::{get_intersections, get_liberties, simulate_ko, Board, Group, Tree, Intersection, Hash, Zobrist, COLS, ROWS};
-use game::{Game, Node};
+use game::{Game, Node, BLACK, WHITE};
 
 #[tauri::command]
 fn get_rows() -> usize {
@@ -286,14 +286,62 @@ fn handle_redo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(us
     (added_pieces, removed_pieces)
 }
  
+/// Evaluate a token from SGF
+fn eval_token(token: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) {
+    // get action by retrieving characters before open bracket
+    let action = token.chars()
+        .take_while(|&c| c != '[')
+        .collect::<String>();
 
+    // if action is not "B" or "W", return early
+    if action != "B" && action != "W" {
+        return;
+    }
+
+    // otherwise, get coordinates by retrieving characters between brackets
+    let coords = token.chars()
+        .skip_while(|&c| c != '[').skip(1)
+        .take_while(|&c| c != ']')
+        .collect::<String>();
+
+    // if coordinates are not two characters long, panic and error
+    if coords.len() != 2 {
+        panic!("Invalid coordinates in SGF: {}", coords);
+    }
+
+    // transform SGF coordinates to board coordinates
+    let x = coords.chars().nth(0).unwrap() as usize - 'a' as usize;
+    let y = coords.chars().nth(1).unwrap() as usize - 'a' as usize;
+
+    // handle the move
+    let color = if action == "B" { BLACK } else { WHITE };
+    handle_move(x, y, color, board, tree);
+}
+
+/// Create a Game from an SGF string
+#[tauri::command]
+fn from_sgf(sgf: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) {
+    // strip first and last parantheses
+    let mut loaded = sgf.chars();
+    loaded.next();
+    loaded.next();
+    loaded.next_back();
+
+    // get tokens
+    let tokens = loaded.as_str().split(";");
+
+    // evaluate tokens
+    for token in tokens {
+        eval_token(token, board.clone(), tree.clone());
+    }
+}
 
 fn main() {
     tauri::Builder::default()
         .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
         .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
         .manage(Tree { game: Mutex::new(Game::new()) })
-        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, handle_move, handle_undo, handle_redo])
+        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, handle_move, handle_undo, handle_redo, from_sgf])
         .run(tauri::generate_context!())
         .expect("error while running tauri application"); 
 }
