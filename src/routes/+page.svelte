@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { invoke } from '@tauri-apps/api/tauri'
+    import { open } from '@tauri-apps/api/dialog';
 
     let board: HTMLCanvasElement
     let hover: HTMLCanvasElement
@@ -104,7 +105,7 @@
         let color: number = pieceColor === 'black' ? 1 : 2
         let isValid: boolean = await invoke('validate', { x, y, color })
         if (!isValid) return
-        let toRemove: number[][] = await invoke('handle_move', { x, y, color })
+        let toRemove: number[][] = await invoke('tauri_move', { x, y, color })
 
         // remove pieces
         for (let i = 0; i < toRemove.length; i++) {
@@ -166,7 +167,6 @@
 
     // handle key presses
     async function handleKey(e: KeyboardEvent) {
-        console.log!(e.key)
         switch (e.key) {
             case 'ArrowLeft':
                 await undo()
@@ -174,6 +174,38 @@
             case 'ArrowRight':
                 await redo()
                 break
+        }
+    }
+
+    // load SGF file
+    async function loadSGF() {
+        // Open a selection dialog for image files
+        const file: string | string[] = await open({
+            multiple: false,
+            filters: [{
+                name: 'SGF',
+                extensions: ['sgf']
+            }]
+        });
+
+        // Handle selection
+        if (file === null) {
+            return;
+        } else if (typeof file === 'string') {
+            let pieces: number[][] = await invoke('from_sgf', { file })
+
+            // clear and reset board
+            ctxPieces.clearRect(0, 0, width, height)
+            await invoke('reset')
+
+            // add pieces
+            for (let i = 0; i < pieces.length; i++) {
+                let [x, y, color] = pieces[i]
+                ctxPieces.beginPath()
+                ctxPieces.arc(GAP * x + GAP, GAP * y + GAP, GAP / 2, 0, 2 * Math.PI)
+                ctxPieces.fillStyle = color === 1 ? 'black' : 'white'
+                ctxPieces.fill()
+            }
         }
     }
 
@@ -215,7 +247,15 @@
         <div>Header</div>
     </div>
     <div class="grid grid-cols-[3%_auto_3%]">
-        <div>Left</div>
+        <div class="p-4">Left
+            <svg width="50px" height="50px" role="button" fill="none" tabindex="-1" on:click={loadSGF} on:keydown={() => {}}>
+                <path 
+                    d="M13 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.0799 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.0799 21 8.2 21H12M13 3L19 9M13 3V7.4C13 7.96005 13 8.24008 13.109 8.45399C13.2049 8.64215 13.3578 8.79513 13.546 8.89101C13.7599 9 14.0399 9 14.6 9H19M19 9V12M17 19H21M19 17V21"
+                    stroke="#FFFFFF" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round"/>
+            </svg>
+        </div>
         <div class="relative">
             <canvas bind:this={board} class="absolute top-1/2 left-1/2 transform -translate-x-1/2" {width} {height}></canvas>
             <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
