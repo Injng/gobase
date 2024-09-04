@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex};
 use go::{get_intersections, get_liberties, simulate_ko, Board, Group, Tree, Intersection, Hash, Zobrist, COLS, ROWS};
 use game::{Game, Node};
 
-// get constants
 #[tauri::command]
 fn get_rows() -> usize {
     ROWS
@@ -28,7 +27,7 @@ fn reset(board: tauri::State<Board>, hash: tauri::State<Hash>) {
     *hash = Zobrist::new();
 }
 
-// check if a given move is valid
+/// Check if a given move is valid
 #[tauri::command]
 fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: tauri::State<Hash>) -> bool {
     let mut board = board.pieces.lock().unwrap();
@@ -124,8 +123,8 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
     is_valid
 }
 
-// handle a move by returning a list of intersections to remove
 // precondition: move is valid
+/// Handle a move by returning a list of intersections to remove
 #[tauri::command]
 fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize)> {
     let mut board = board.pieces.lock().unwrap();
@@ -190,7 +189,7 @@ fn handle_move(x: usize, y: usize, color: usize, board: tauri::State<Board>, tre
     to_remove
 }
 
-// handle an undo move, and return (added_pieces, removed_pieces)
+/// Handle an undo move, and return (added_pieces, removed_pieces)
 #[tauri::command]
 fn handle_undo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
     let mut change_board = board.pieces.lock().unwrap();
@@ -237,7 +236,7 @@ fn handle_undo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(us
     (added_pieces, removed_pieces)
 }
 
-// handle a redo move, and return (added_pieces, removed_pieces)
+/// Handle a redo move, and return (added_pieces, removed_pieces)
 #[tauri::command]
 fn handle_redo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
     let mut change_board = board.pieces.lock().unwrap();
