@@ -9,6 +9,7 @@ const EMPTY: usize = 0;
 const BLACK: usize = 1;
 const WHITE: usize = 2;
 
+/// Enum for the intersection of a Go board, that can be either empty, black, or white
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Intersection {
     Empty,
@@ -16,24 +17,29 @@ pub enum Intersection {
     White(Group),
 }
 
+/// Tauri wrapper struct for the game tree
 pub struct Tree {
     pub game: Mutex<Game>,
 }
 
+/// Tauri wrapper struct for the board
 pub struct Board {
     pub pieces: Mutex<Vec<Vec<Intersection>>>,
 }
 
+/// The group of connected stones on the board, their intersections and their liberties
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Group {
     pub intersections: HashSet<(usize, usize)>,
     pub liberties: HashSet<(usize, usize)>,
 }
 
+/// Tauri wrapper struct for the Zobrist hash
 pub struct Hash {
     pub zobrist: Mutex<Zobrist>,
 }
 
+/// Zobrist hashing for Go board to detect ko
 pub struct Zobrist {
     positions: [[[u64; 3]; COLS]; ROWS],
     board: Vec<Vec<Intersection>>,
@@ -73,6 +79,7 @@ impl Zobrist {
         }
     }
 
+    /// Update the hash with a new board state
     pub fn update(&mut self, new_board: &Vec<Vec<Intersection>>) -> bool {
         let mut new_hash: u64 = self.hash;
         for i in 0..ROWS {
@@ -107,7 +114,7 @@ impl Zobrist {
     }
 }
 
-// find if a intersection has any adjacent liberties and add them to the group
+/// Find if a intersection has any adjacent liberties and add them to the group
 fn find_liberties(x: usize, y: usize, board: &Vec<Vec<Intersection>>, libs: &mut HashSet<(usize, usize)>) {
     let intersection = &board[x][y];
     match intersection {
@@ -130,9 +137,12 @@ fn find_liberties(x: usize, y: usize, board: &Vec<Vec<Intersection>>, libs: &mut
 }
 
 // precondition: all intersections have been updated
+/// Get all the liberties for a group specified by an intersection on the board
 pub fn get_liberties(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
     // initialize clean group with no liberties
     let mut move_group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
+
+    // check and get group from the intersection
     if let Intersection::Black(ref mut group) = board[x][y] {
         move_group.intersections = group.intersections.clone();
     } else if let Intersection::White(ref mut group) = board[x][y] {
@@ -160,7 +170,7 @@ pub fn get_liberties(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Inter
     }
 }
 
-// give coordinates, use flood fill to find all coordinates in the group
+/// Given coordinates, use flood fill to find all coordinates in the group
 pub fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<Intersection>>) {
     // initialize group with empty intersections and no liberties
     let mut group: Group = Group { intersections: HashSet::new(), liberties: HashSet::new() };
@@ -216,7 +226,7 @@ pub fn get_intersections(x: usize, y: usize, color: usize, board: &mut Vec<Vec<I
     }
 }
 
-// simulate the validation process
+/// Simulate the validation process
 pub fn simulate_val(x: usize, y: usize, color: usize, mut board: Vec<Vec<Intersection>>, mut hash: Zobrist) -> bool {
     let intersection = &board[x][y];
     let mut is_valid: bool;
@@ -297,19 +307,15 @@ pub fn simulate_val(x: usize, y: usize, color: usize, mut board: Vec<Vec<Interse
         check_capture(x, y + 1);
     }
 
-    println!("suicide: {}", is_valid);
-
     // check for ko
     if is_valid {
         is_valid = simulate_ko(x, y, color, &board, &mut hash);
     }
 
-    println!("ko: {}", is_valid);
-
     is_valid
 }
 
-// simulate a move to check for ko
+/// Simulate a move to check for ko
 pub fn simulate_ko(x: usize, y: usize, color: usize, board: &Vec<Vec<Intersection>>, hash: &mut Zobrist) -> bool {
     // simulate the move
     let mut sim_board = board.clone();
@@ -370,7 +376,7 @@ pub fn simulate_ko(x: usize, y: usize, color: usize, board: &Vec<Vec<Intersectio
     is_ko
 }
 
-// simulate a move on a board
+/// Simulate a move on a board
 pub fn simulate_move(x: usize, y: usize, color: usize, mut board: Vec<Vec<Intersection>>) {
     if color == 1 {
         board[x][y] = Intersection::Black(Group { intersections: HashSet::new(), liberties: HashSet::new() });
