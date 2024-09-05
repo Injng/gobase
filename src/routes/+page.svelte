@@ -243,11 +243,11 @@
 
 
 <div class="grid grid-rows-[100px_auto] bg-slate-500 text-white">
-    <div>
-        <div>Header</div>
+    <div class="text-center p-6">
+        <div class="text-3xl">Gobase</div>
     </div>
     <div class="grid grid-cols-[3%_auto_3%]">
-        <div class="p-4">Left
+        <div class="p-4">
             <svg width="50px" height="50px" role="button" fill="none" tabindex="-1" on:click={loadSGF} on:keydown={() => {}}>
                 <path 
                     d="M13 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.0799 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.0799 21 8.2 21H12M13 3L19 9M13 3V7.4C13 7.96005 13 8.24008 13.109 8.45399C13.2049 8.64215 13.3578 8.79513 13.546 8.89101C13.7599 9 14.0399 9 14.6 9H19M19 9V12M17 19H21M19 17V21"
@@ -261,7 +261,7 @@
             <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
             <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
         </div>
-        <div>Right
+        <div>
             <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
                 <circle
                     style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
