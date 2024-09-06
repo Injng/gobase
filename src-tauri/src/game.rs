@@ -3,7 +3,6 @@ use crate::go::Intersection;
 
 pub const ROWS: usize = 19;
 pub const COLS: usize = 19;
-const EMPTY: usize = 0;
 pub const BLACK: usize = 1;
 pub const WHITE: usize = 2;
 

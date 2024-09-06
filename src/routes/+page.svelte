@@ -59,9 +59,47 @@
         }
         ctxBoard.stroke()
 
+        // draw star points
+        ctxBoard.fillStyle = '#000000'
+        let points: number[][] = [[3, 3], [9, 3], [15, 3], [3, 9], [9, 9], [15, 9], [3, 15], [9, 15], [15, 15]]
+        for (let i = 0; i < points.length; i++) {
+            let [x, y] = points[i]
+            ctxBoard.beginPath()
+            ctxBoard.arc(GAP * x + GAP, GAP * y + GAP, 5, 0, 2 * Math.PI)
+            ctxBoard.fill()
+        }
+
         // reset board
         await invoke('reset')
     })
+
+    // draw stone on board
+    function drawStone(ctx, x, y, radius, color) {
+        // Create gradient
+        const gradient = ctx.createRadialGradient(
+                x - radius / 3, y - radius / 3, radius / 8,
+                x, y, radius
+                );
+        gradient.addColorStop(0, color === 'black' ? '#505050' : '#FFFFFF');
+        gradient.addColorStop(1, color === 'black' ? '#000000' : '#D4D4D4');
+
+        // Draw shadow
+        ctx.beginPath();
+        ctx.arc(x + 2, y + 2, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fill();
+
+        // Draw stone
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Add slight border
+        ctx.strokeStyle = color === 'black' ? '#303030' : '#A0A0A0';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
 
     // show transparent shadow of piece when hovering
     function hovering(e: MouseEvent) {
@@ -83,10 +121,7 @@
 
         // draw shadow
         ctxHover.clearRect(0, 0, width, height)
-        ctxHover.beginPath()
-        ctxHover.arc(closestX, closestY, GAP / 2, 0, 2 * Math.PI)
-        ctxHover.fillStyle = pieceColor
-        ctxHover.fill()
+        drawStone(ctxHover, closestX, closestY, GAP / 2 - 2, pieceColor)
     }
 
     // place piece on board when clicked
@@ -114,10 +149,7 @@
         }
 
         // draw piece
-        ctxPieces.beginPath()
-        ctxPieces.arc(closestX, closestY, GAP / 2, 0, 2 * Math.PI)
-        ctxPieces.fillStyle = pieceColor
-        ctxPieces.fill()
+        drawStone(ctxPieces, closestX, closestY, GAP / 2 - 2, pieceColor)
 
         // set piece color
         if (isPlay) {
@@ -138,10 +170,7 @@
         // add pieces
         for (let i = 0; i < change[0].length; i++) {
             let [y, x, color] = change[0][i]
-            ctxPieces.beginPath()
-            ctxPieces.arc(GAP * x + GAP, GAP * y + GAP, GAP / 2, 0, 2 * Math.PI)
-            ctxPieces.fillStyle = color === 1 ? 'black' : 'white'
-            ctxPieces.fill()
+            drawStone(ctxPieces, GAP * x + GAP, GAP * y + GAP, GAP / 2 - 2, color === 1 ? 'black' : 'white')
         }
     }
 
@@ -158,10 +187,7 @@
         // add pieces
         for (let i = 0; i < change[0].length; i++) {
             let [y, x, color] = change[0][i]
-            ctxPieces.beginPath()
-            ctxPieces.arc(GAP * x + GAP, GAP * y + GAP, GAP / 2, 0, 2 * Math.PI)
-            ctxPieces.fillStyle = color === 1 ? 'black' : 'white'
-            ctxPieces.fill()
+            drawStone(ctxPieces, GAP * x + GAP, GAP * y + GAP, GAP / 2 - 2, color === 1 ? 'black' : 'white')
         }
     }
 
@@ -179,7 +205,7 @@
 
     // load SGF file
     async function loadSGF() {
-        // Open a selection dialog for image files
+        // open a selection dialog for image files
         const file: string | string[] = await open({
             multiple: false,
             filters: [{
@@ -188,7 +214,7 @@
             }]
         });
 
-        // Handle selection
+        // handle selection
         if (file === null) {
             return;
         } else if (typeof file === 'string') {
@@ -201,10 +227,7 @@
             // add pieces
             for (let i = 0; i < pieces.length; i++) {
                 let [x, y, color] = pieces[i]
-                ctxPieces.beginPath()
-                ctxPieces.arc(GAP * x + GAP, GAP * y + GAP, GAP / 2, 0, 2 * Math.PI)
-                ctxPieces.fillStyle = color === 1 ? 'black' : 'white'
-                ctxPieces.fill()
+                drawStone(ctxPieces, GAP * y + GAP, GAP * x + GAP, GAP / 2 - 2, color === 1 ? 'black' : 'white')
             }
         }
     }

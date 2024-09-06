@@ -112,14 +112,10 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
         check_capture(x, y + 1);
     }
 
-    println!("suicide: {}", is_valid);
-
     // check for ko
     if is_valid {
         is_valid = simulate_ko(x, y, color, &board, &mut hash);
     }
-
-    println!("ko: {}", is_valid);
 
     is_valid
 }
