@@ -324,8 +324,13 @@ fn eval_token(token: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree
 /// Create a Game from an SGF string, and return the added pieces
 #[tauri::command]
 fn from_sgf(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
-    // load sgf from file
+    // load sgf from file and create a new Game
     let sgf: &str = &fs::read_to_string(file).expect("Error: cannot read file");
+    {
+        let mut tree = tree.game.lock().unwrap();
+        *tree = Game::new();
+    }
+
 
     // strip first and last parantheses
     let mut loaded = sgf.chars();
@@ -357,12 +362,57 @@ fn from_sgf(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) ->
     added
 }
 
+/// Saves the current state of the board
+#[tauri::command]
+fn save_state(board: tauri::State<Board>, tree: tauri::State<Tree>) {
+    let board = board.pieces.lock().unwrap();
+    let mut game = tree.game.lock().unwrap();
+    game.save_state(board.clone());
+}
+
+/// Reverts to a saved state of the board
+#[tauri::command]
+fn revert_state(state_idx: usize, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+    let mut board = board.pieces.lock().unwrap();
+    let mut game = tree.game.lock().unwrap();
+    if game.states.len() < state_idx + 1 {
+        return Vec::new();
+    }
+    let (state, curr, root) = game.states[state_idx].clone();
+    *board = state.to_vec();
+    game.curr = curr.clone();
+    game.root = root.clone();
+
+    // iterate through board and add pieces
+    let mut added: Vec<(usize, usize, usize)> = Vec::new();
+    for i in 0..ROWS {
+        for j in 0..COLS {
+            if let Intersection::Black(_) = board[i][j] {
+                added.push((i, j, BLACK));
+            } else if let Intersection::White(_) = board[i][j] {
+                added.push((i, j, WHITE));
+            }
+        }
+    }
+
+    added
+}
+
+/// Initialize a number of states for frontend by returning number of states in backend
+#[tauri::command]
+fn init_states(tree: tauri::State<Tree>) -> usize {
+    let game = tree.game.lock().unwrap();
+    game.states.len()
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
         .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
         .manage(Tree { game: Mutex::new(Game::new()) })
-        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, tauri_move, handle_undo, handle_redo, from_sgf])
+        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, 
+            tauri_move, handle_undo, handle_redo, from_sgf, save_state, revert_state, 
+            init_states])
         .run(tauri::generate_context!())
         .expect("error while running tauri application"); 
 }

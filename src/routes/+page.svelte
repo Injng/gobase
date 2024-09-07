@@ -2,6 +2,7 @@
     import { onMount } from 'svelte'
     import { invoke } from '@tauri-apps/api/tauri'
     import { open } from '@tauri-apps/api/dialog';
+    import { Save, FileText, Rewind } from 'lucide-svelte';
 
     let board: HTMLCanvasElement
     let hover: HTMLCanvasElement
@@ -71,10 +72,41 @@
 
         // reset board
         await invoke('reset')
+
+        // initialize states
+        let numStates: number = await invoke('init_states')
+        for (let i = 0; i < numStates; i++) {
+            const newState = { id, name: `State ${savedStates.length + 1}` }
+            savedStates = [...savedStates, newState]
+            id += 1
+        }
     })
 
+    let savedStates = []
+    let id = 0
+
+    async function saveCurrentState() {
+        const newState = { id, name: `State ${savedStates.length + 1}` }
+        savedStates = [...savedStates, newState]
+        id += 1
+        await invoke('save_state')
+    }
+
+    async function loadState(stateIdx: number) {
+        let pieces: number[][] = await invoke('revert_state', { stateIdx })
+
+        // clear board
+        ctxPieces.clearRect(0, 0, width, height)
+
+        // add pieces
+        for (let i = 0; i < pieces.length; i++) {
+            let [x, y, color] = pieces[i]
+            drawStone(ctxPieces, GAP * y + GAP, GAP * x + GAP, GAP / 2 - 2, color === 1 ? 'black' : 'white')
+        }
+    }
+
     // draw stone on board
-    function drawStone(ctx, x, y, radius, color) {
+    function drawStone(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string) {
         // Create gradient
         const gradient = ctx.createRadialGradient(
                 x - radius / 3, y - radius / 3, radius / 8,
@@ -265,24 +297,47 @@
 </script>
 
 
-<div class="grid grid-rows-[100px_auto] bg-slate-500 text-white">
-    <div class="text-center p-6">
+<div class="grid grid-rows-[100px_200px_auto]">
+    <div class="text-center p-6 bg-slate-500 text-white">
         <div class="text-3xl">Gobase</div>
     </div>
-    <div class="grid grid-cols-[3%_auto_3%]">
-        <div class="p-4">
-            <svg width="50px" height="50px" role="button" fill="none" tabindex="-1" on:click={loadSGF} on:keydown={() => {}}>
-                <path 
-                    d="M13 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.0799 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.0799 21 8.2 21H12M13 3L19 9M13 3V7.4C13 7.96005 13 8.24008 13.109 8.45399C13.2049 8.64215 13.3578 8.79513 13.546 8.89101C13.7599 9 14.0399 9 14.6 9H19M19 9V12M17 19H21M19 17V21"
-                    stroke="#FFFFFF" 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round"/>
-            </svg>
+    <div class="grid grid-cols-[10%_auto_10%] bg-slate-500 text-white">
+        <div class="grid grid-rows-[200px_auto]">
+            <div class="p-4">
+                <svg width="50px" height="50px" role="button" fill="none" tabindex="-1" on:click={loadSGF} on:keydown={() => {}}>
+                    <path 
+                        d="M13 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.0799 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.0799 21 8.2 21H12M13 3L19 9M13 3V7.4C13 7.96005 13 8.24008 13.109 8.45399C13.2049 8.64215 13.3578 8.79513 13.546 8.89101C13.7599 9 14.0399 9 14.6 9H19M19 9V12M17 19H21M19 17V21"
+                        stroke="#FFFFFF" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="p-4">
+                <button on:click={saveCurrentState} class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded flex items-center justify-center">
+                    <Save class="mr-2" size={16} />
+                    Save State
+                </button>
+                <div class="bg-gray-700 p-2 mt-2 rounded">
+                <div class="flex items-center justify-between mb-2">
+                <span>Saved States</span>
+                <FileText size={16} />
+                </div>
+                    {#each savedStates as state}
+                        <button
+                        on:click={() => loadState(state.id)}
+                        class="w-full bg-gray-600 hover:bg-gray-500 text-white p-2 rounded mb-1 flex items-center justify-start"
+                        >
+                            <Rewind class="mr-2" size={16} />
+                            {state.name}
+                        </button>
+                    {/each}
+                </div>
+            </div>
         </div>
         <div class="relative">
-            <canvas bind:this={board} class="absolute top-1/2 left-1/2 transform -translate-x-1/2" {width} {height}></canvas>
-            <canvas bind:this={hover} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
-            <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute top-1/2 left-1/2 transform -translate-x-1/2"></canvas>
+            <canvas bind:this={board} class="absolute left-1/2 transform -translate-x-1/2" {width} {height}></canvas>
+            <canvas bind:this={hover} {width} {height} class="absolute left-1/2 transform -translate-x-1/2"></canvas>
+            <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute left-1/2 transform -translate-x-1/2"></canvas>
         </div>
         <div>
             <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>

@@ -46,6 +46,7 @@ impl Node {
 pub struct Game {
     pub root: Arc<Mutex<Node>>,
     pub curr: Arc<Mutex<Node>>,
+    pub states: Vec<(Vec<Vec<Intersection>>, Arc<Mutex<Node>>, Arc<Mutex<Node>>)>
 }
 
 impl Game {
@@ -53,7 +54,7 @@ impl Game {
         let board = vec![vec![Intersection::Empty; COLS]; ROWS];
         let root = Arc::new(Mutex::new(Node::new(board, (0, 0), BLACK, None)));
         let curr = Arc::clone(&root);
-        Game { root, curr }
+        Game { root, curr, states: Vec::new() }
     }
 
     /// Add a node to the game tree
@@ -70,4 +71,10 @@ impl Game {
         }
         self.curr = node;
     }
+
+    /// Save the current state of the game
+    pub fn save_state(&mut self, board: Vec<Vec<Intersection>>) {
+        self.states.push((board, Arc::clone(&self.curr), Arc::clone(&self.root)));
+    }
 }
+
