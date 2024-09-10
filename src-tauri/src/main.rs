@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::sync::{Arc, Mutex};
 use go::{get_intersections, get_liberties, simulate_ko, Board, Group, Tree, Intersection, Hash, Zobrist, COLS, ROWS};
-use game::{Game, Node, BLACK, WHITE};
+use game::{Saved, Game, Node, BLACK, WHITE};
 
 #[tauri::command]
 fn get_rows() -> usize {
@@ -321,9 +321,9 @@ fn eval_token(token: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree
     handle_move(x, y, color, board, tree);
 }
 
-/// Create a Game from an SGF string, and return the added pieces
+/// Tauri wrapper function for creating a Game from a file containing an SGF string
 #[tauri::command]
-fn from_sgf(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+fn from_sgf_file(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
     // load sgf from file and create a new Game
     let sgf: &str = &fs::read_to_string(file).expect("Error: cannot read file");
     {
@@ -331,7 +331,12 @@ fn from_sgf(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) ->
         *tree = Game::new();
     }
 
+    from_sgf(sgf, &board, &tree)
+}
 
+/// Create a Game from an SGF string, and return the added pieces
+#[tauri::command]
+fn from_sgf(sgf: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
     // strip first and last parantheses
     let mut loaded = sgf.chars();
     loaded.next();
@@ -405,14 +410,50 @@ fn init_states(tree: tauri::State<Tree>) -> usize {
     game.states.len()
 }
 
+/// Save the current Game by serializing it to JSON
+#[tauri::command]
+fn save_game(file: &str, tree: tauri::State<Tree>) {
+    let game = tree.game.lock().unwrap();
+    let saved_game: Saved = Saved::new(&game);
+    let saved_json: String = serde_json::to_string(&saved_game).unwrap();
+    fs::write(file, saved_json).expect("Error: cannot write file");
+}
+
+/// Load a Game from a file containing a serialized Saved struct
+#[tauri::command]
+fn load_game(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+    // deserialize Saved struct from file
+    let saved_json: &str = &fs::read_to_string(file).expect("Error: cannot read file");
+    let saved_game: Saved = serde_json::from_str(saved_json).unwrap();
+
+    // clear the board
+    {
+        let mut board = board.pieces.lock().unwrap();
+        *board = vec![vec![Intersection::Empty; COLS]; ROWS];
+    }
+
+    // import SGF into game
+    {
+        let mut tree = tree.game.lock().unwrap();
+        *tree = Game::new();
+    }
+    let added: Vec<(usize, usize, usize)> = from_sgf(&saved_game.sgf, &board, &tree);
+
+    // import saved states into game
+    let mut game = tree.game.lock().unwrap();
+    game.add_states(saved_game);
+
+    added
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
         .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
         .manage(Tree { game: Mutex::new(Game::new()) })
         .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, 
-            tauri_move, handle_undo, handle_redo, from_sgf, save_state, revert_state, 
-            init_states])
+            tauri_move, handle_undo, handle_redo, from_sgf_file, save_state, revert_state, 
+            init_states, save_game, load_game])
         .run(tauri::generate_context!())
         .expect("error while running tauri application"); 
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { invoke } from '@tauri-apps/api/tauri'
-    import { open } from '@tauri-apps/api/dialog';
+    import { open, save } from '@tauri-apps/api/dialog';
     import { Save, FileText, Rewind } from 'lucide-svelte';
 
     let board: HTMLCanvasElement
@@ -85,6 +85,7 @@
     let savedStates = []
     let id = 0
 
+    // save the current state of the board
     async function saveCurrentState() {
         const newState = { id, name: `State ${savedStates.length + 1}` }
         savedStates = [...savedStates, newState]
@@ -92,6 +93,7 @@
         await invoke('save_state')
     }
 
+    // load a saved state's pieces on the board
     async function loadState(stateIdx: number) {
         let pieces: number[][] = await invoke('revert_state', { stateIdx })
 
@@ -102,6 +104,57 @@
         for (let i = 0; i < pieces.length; i++) {
             let [x, y, color] = pieces[i]
             drawStone(ctxPieces, GAP * y + GAP, GAP * x + GAP, GAP / 2 - 2, color === 1 ? 'black' : 'white')
+        }
+    }
+
+    // save the current game
+    async function saveGame() {
+        // open a selection dialog to save the game
+        const file = await save({
+            filters: [{
+                name: 'Saved',
+                extensions: ['save']
+            }]
+        });
+
+        await invoke('save_game', { file })
+    }
+
+    // load a game from a savefile
+    async function loadGame() {
+        // open a selection dialog for savefiles
+        const file: string | string[] = await open({
+            multiple: false,
+            filters: [{
+                name: 'Saved',
+                extensions: ['save']
+            }]
+        });
+
+        // handle selection
+        if (file === null) {
+            return;
+        } else if (typeof file === 'string') {
+            let pieces: number[][] = await invoke('load_game', { file })
+
+            // clear and reset board
+            ctxPieces.clearRect(0, 0, width, height)
+
+            // add pieces
+            for (let i = 0; i < pieces.length; i++) {
+                let [x, y, color] = pieces[i]
+                drawStone(ctxPieces, GAP * y + GAP, GAP * x + GAP, GAP / 2 - 2, color === 1 ? 'black' : 'white')
+            }
+
+            // initialize states
+            let numStates: number = await invoke('init_states')
+            savedStates = []
+            id = 0
+            for (let i = 0; i < numStates; i++) {
+                const newState = { id, name: `State ${savedStates.length + 1}` }
+                savedStates = [...savedStates, newState]
+                id += 1
+            }
         }
     }
 
@@ -237,7 +290,7 @@
 
     // load SGF file
     async function loadSGF() {
-        // open a selection dialog for image files
+        // open a selection dialog for SGF files
         const file: string | string[] = await open({
             multiple: false,
             filters: [{
@@ -339,69 +392,81 @@
             <canvas bind:this={hover} {width} {height} class="absolute left-1/2 transform -translate-x-1/2"></canvas>
             <canvas bind:this={pieces} on:mousemove={hovering} on:click={placing} {width} {height} class="absolute left-1/2 transform -translate-x-1/2"></canvas>
         </div>
-        <div>
-            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
-                <circle
-                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                    id="path1"
-                    cx="20"
-                    cy="20"
-                    r="10" />
-            </svg>
-            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
-                <circle
+        <div class="grid grid-rows-[200px_auto]">
+            <div>
+                <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playBlack} on:keydown={() => {}}>
+                    <circle
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                        id="path1"
+                        cx="20"
+                        cy="20"
+                        r="10" />
+                </svg>
+                <svg width="50px" height="40px" role="button" tabindex="-1" on:click={playWhite} on:keydown={() => {}}>
+                    <circle
+                        style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                        id="path1"
+                        cx="20"
+                        cy="20"
+                        r="10" />
+                </svg>
+                <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
+                    <circle
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
+                        id="path1"
+                        cx="20"
+                        cy="20"
+                        r="10" />
+                    <rect
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                        id="rect1"
+                        width="0.012675161"
+                        height="6.5395594"
+                        x="33.037266"
+                        y="7.2474785" />
+                    <rect
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                        id="rect1-5"
+                        width="0.012675161"
+                        height="6.5395594"
+                        x="10.456588"
+                        y="-36.335133"
+                        transform="rotate(90)" />
+                </svg>
+                <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
+                    <circle
                     style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
                     id="path1"
                     cx="20"
                     cy="20"
                     r="10" />
-            </svg>
-            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setBlack} on:keydown={() => {}}>
-                <circle
-                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                    id="path1"
-                    cx="20"
-                    cy="20"
-                    r="10" />
-                <rect
-                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
-                    id="rect1"
-                    width="0.012675161"
-                    height="6.5395594"
-                    x="33.037266"
-                    y="7.2474785" />
-                <rect
-                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
-                    id="rect1-5"
-                    width="0.012675161"
-                    height="6.5395594"
-                    x="10.456588"
-                    y="-36.335133"
-                    transform="rotate(90)" />
-            </svg>
-            <svg width="50px" height="40px" role="button" tabindex="-1" on:click={setWhite} on:keydown={() => {}}>
-                <circle
-                style="fill:#fffbfb;fill-opacity:1;stroke:#fffbfb;stroke-width:1.565;stroke-dasharray:none;stroke-opacity:1"
-                id="path1"
-                cx="20"
-                cy="20"
-                r="10" />
-                <rect
-                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
-                    id="rect1"
-                    width="0.012675161"
-                    height="6.5395594"
-                    x="33.037266"
-                    y="7.2474785" />
-                <rect
-                    style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
-                    id="rect1-5"
-                    width="0.012675161"
-                    height="6.5395594"
-                    x="10.456588"
-                    y="-36.335133"
-                    transform="rotate(90)" />
-            </svg>
+                    <rect
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                        id="rect1"
+                        width="0.012675161"
+                        height="6.5395594"
+                        x="33.037266"
+                        y="7.2474785" />
+                    <rect
+                        style="fill:#000000;fill-opacity:0;stroke:#fffbfb;stroke-width:1.41226"
+                        id="rect1-5"
+                        width="0.012675161"
+                        height="6.5395594"
+                        x="10.456588"
+                        y="-36.335133"
+                        transform="rotate(90)" />
+                </svg>
+            </div>
+            <div class="p-4">
+                <button on:click={saveGame} class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded flex items-center justify-center">
+                    <Save class="mr-2" size={16} />
+                    Save Game
+                </button>
+                <button on:click={loadGame} class="mt-2 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded flex items-center justify-center">
+                    <FileText class="mr-2" size={16} />
+                    Load Game
+                </button>
+            </div>
         </div>
     </div>
 </div>

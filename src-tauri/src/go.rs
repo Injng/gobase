@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 use std::collections::HashSet;
+use serde::{Serialize, Deserialize};
 use rand::Rng;
 use crate::game::Game;
 
@@ -10,7 +11,7 @@ const BLACK: usize = 1;
 const WHITE: usize = 2;
 
 /// Enum for the intersection of a Go board, that can be either empty, black, or white
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Intersection {
     Empty,
     Black(Group),
@@ -28,7 +29,7 @@ pub struct Board {
 }
 
 /// The group of connected stones on the board, their intersections and their liberties
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Group {
     pub intersections: HashSet<(usize, usize)>,
     pub liberties: HashSet<(usize, usize)>,
