@@ -64,6 +64,7 @@ declare module '$env/static/private' {
 	export const KITTY_PUBLIC_KEY: string;
 	export const MOTD_SHOWN: string;
 	export const HOME: string;
+	export const NO_STRIP: string;
 	export const LANG: string;
 	export const LC_PAPER: string;
 	export const _JAVA_AWT_WM_NONREPARENTING: string;
@@ -107,7 +108,6 @@ declare module '$env/static/private' {
 	export const TAURI_FAMILY: string;
 	export const LC_TIME: string;
 	export const npm_package_json: string;
-	export const TAURI_DEBUG: string;
 	export const BROWSER: string;
 	export const npm_config_noproxy: string;
 	export const PATH: string;
@@ -194,6 +194,7 @@ declare module '$env/dynamic/private' {
 		KITTY_PUBLIC_KEY: string;
 		MOTD_SHOWN: string;
 		HOME: string;
+		NO_STRIP: string;
 		LANG: string;
 		LC_PAPER: string;
 		_JAVA_AWT_WM_NONREPARENTING: string;
@@ -237,7 +238,6 @@ declare module '$env/dynamic/private' {
 		TAURI_FAMILY: string;
 		LC_TIME: string;
 		npm_package_json: string;
-		TAURI_DEBUG: string;
 		BROWSER: string;
 		npm_config_noproxy: string;
 		PATH: string;

@@ -3,7 +3,7 @@
 A base for playing Go.
 
 ## Installation
-[Pre-built AppImages](https://github.com/Injng/gobase/releases/tag/v0.1.0) are offered for Linux x86_64 systems. For other operating systems, clone the repository and see either the Developing or Building
+[Pre-built AppImages](https://github.com/Injng/gobase/releases/tag/v0.2.0) are offered for Linux x86_64 systems. For other operating systems, clone the repository and see either the Developing or Building
 sections below.
 
 ## Usage
@@ -14,6 +14,10 @@ stones of that color. You can undo and redo moves that you have made by using th
 Gobase also supports loading in other games through SGF (Smart Game Format) files. To load in a game, click the file icon on the left sidebar and select
 the appropriate file ending in `.sgf`. You can then navigate through the game using the left and right arrow keys. Note that at this time, Gobase only supports
 move properites in SGF (i.e. `B` and `W`).
+
+A number of features are included to aid in the ease of your analysis/learning. You can save the state of your board at any moment, and return to that state at any
+moment thereafter. You can also save the moves you have made in SGF format, to import into other applications. Finally, you can save the entire game tree, along with any
+states that you have saved, in a savefile consisting of a JSON-serialized object. This savefile can be loaded in at any time to restore the state of the game.
 
 ## Developing
 
