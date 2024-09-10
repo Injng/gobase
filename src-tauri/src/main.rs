@@ -331,6 +331,12 @@ fn from_sgf_file(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree
         *tree = Game::new();
     }
 
+    // clear the board
+    {
+        let mut board = board.pieces.lock().unwrap();
+        *board = vec![vec![Intersection::Empty; COLS]; ROWS];
+    }
+
     from_sgf(sgf, &board, &tree)
 }
 

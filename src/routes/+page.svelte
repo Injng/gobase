@@ -316,7 +316,7 @@
         if (file === null) {
             return;
         } else if (typeof file === 'string') {
-            let pieces: number[][] = await invoke('from_sgf', { file })
+            let pieces: number[][] = await invoke('from_sgf_file', { file })
 
             // clear and reset board
             ctxPieces.clearRect(0, 0, width, height)
