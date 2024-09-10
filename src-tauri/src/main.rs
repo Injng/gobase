@@ -410,9 +410,25 @@ fn init_states(tree: tauri::State<Tree>) -> usize {
     game.states.len()
 }
 
+/// Save the current nodes by saving to a SGF file
+#[tauri::command]
+fn save_sgf(file: &str, tree: tauri::State<Tree>) {
+    // check if file ends in extension .sgf, and if not append
+    let file = if file.ends_with(".sgf") { file.to_string() } else { format!("{}.sgf", file) };
+
+    // save SGF file
+    let game = tree.game.lock().unwrap();
+    let sgf = game.to_sgf();
+    fs::write(file, sgf).expect("Error: cannot write file");
+}
+
 /// Save the current Game by serializing it to JSON
 #[tauri::command]
 fn save_game(file: &str, tree: tauri::State<Tree>) {
+    // check if file ends in extension .save, and if not append
+    let file = if file.ends_with(".save") { file.to_string() } else { format!("{}.save", file) };
+
+    // serialize Game into JSON and save
     let game = tree.game.lock().unwrap();
     let saved_game: Saved = Saved::new(&game);
     let saved_json: String = serde_json::to_string(&saved_game).unwrap();
@@ -453,7 +469,7 @@ fn main() {
         .manage(Tree { game: Mutex::new(Game::new()) })
         .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, 
             tauri_move, handle_undo, handle_redo, from_sgf_file, save_state, revert_state, 
-            init_states, save_game, load_game])
+            init_states, save_game, load_game, save_sgf])
         .run(tauri::generate_context!())
         .expect("error while running tauri application"); 
 }

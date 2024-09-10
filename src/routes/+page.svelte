@@ -107,6 +107,19 @@
         }
     }
 
+    // save the moves as SGF
+    async function saveSGF() {
+        // open a selection dialog to save the game
+        const file = await save({
+            filters: [{
+                name: 'SGF',
+                extensions: ['sgf']
+            }]
+        });
+
+        await invoke('save_sgf', { file })
+    }
+
     // save the current game
     async function saveGame() {
         // open a selection dialog to save the game
@@ -465,6 +478,10 @@
                 <button on:click={loadGame} class="mt-2 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded flex items-center justify-center">
                     <FileText class="mr-2" size={16} />
                     Load Game
+                </button>
+                <button on:click={saveSGF} class="mt-2 bg-gray-600 hover:bg-gray-700 text-white p-2 rounded flex items-center justify-center">
+                    <Save class="mr-2" size={16} />
+                    Save SGF
                 </button>
             </div>
         </div>
