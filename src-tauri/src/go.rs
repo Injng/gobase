@@ -41,6 +41,7 @@ pub struct Hash {
 }
 
 /// Zobrist hashing for Go board to detect ko
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Zobrist {
     positions: [[[u64; 3]; COLS]; ROWS],
     board: Vec<Vec<Intersection>>,

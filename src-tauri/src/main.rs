@@ -375,24 +375,41 @@ fn from_sgf(sgf: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree>) -
 
 /// Saves the current state of the board
 #[tauri::command]
-fn save_state(board: tauri::State<Board>, tree: tauri::State<Tree>) {
+fn save_state(board: tauri::State<Board>, tree: tauri::State<Tree>, hash: tauri::State<Hash>) {
+    let hash = hash.zobrist.lock().unwrap(); 
     let board = board.pieces.lock().unwrap();
     let mut game = tree.game.lock().unwrap();
-    game.save_state(board.clone());
+    game.save_state(board.clone(), hash.clone());
+}
+
+/// Fancy print out the board
+fn print_board(board: &Vec<Vec<Intersection>>) {
+    for i in 0..ROWS {
+        for j in 0..COLS {
+            match &board[i][j] {
+                Intersection::Black(_) => print!("B "),
+                Intersection::White(_) => print!("W "),
+                _ => print!(". "),
+            }
+        }
+        println!();
+    }
 }
 
 /// Reverts to a saved state of the board
 #[tauri::command]
-fn revert_state(state_idx: usize, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+fn revert_state(state_idx: usize, board: tauri::State<Board>, tree: tauri::State<Tree>, hash: tauri::State<Hash>) -> Vec<(usize, usize, usize)> {
     let mut board = board.pieces.lock().unwrap();
+    let mut hash = hash.zobrist.lock().unwrap();
     let mut game = tree.game.lock().unwrap();
     if game.states.len() < state_idx + 1 {
         return Vec::new();
     }
-    let (state, curr, root) = game.states[state_idx].clone();
+    let (state, curr, root, saved_hash) = game.states[state_idx].clone();
     *board = state.to_vec();
     game.curr = curr.clone();
     game.root = root.clone();
+    *hash = saved_hash;
 
     // iterate through board and add pieces
     let mut added: Vec<(usize, usize, usize)> = Vec::new();

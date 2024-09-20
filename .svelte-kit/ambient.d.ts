@@ -35,6 +35,7 @@ declare module '$env/static/private' {
 	export const XDG_SESSION_PATH: string;
 	export const NVM_INC: string;
 	export const TERM_PROGRAM_VERSION: string;
+	export const GTK_IM_MODULE: string;
 	export const XDG_BACKEND: string;
 	export const TMUX: string;
 	export const NODE: string;
@@ -44,6 +45,7 @@ declare module '$env/static/private' {
 	export const TMUX_PLUGIN_MANAGER_PATH: string;
 	export const COLOR: string;
 	export const npm_config_local_prefix: string;
+	export const XMODIFIERS: string;
 	export const DESKTOP_SESSION: string;
 	export const LC_MONETARY: string;
 	export const HL_INITIAL_WORKSPACE_TOKEN: string;
@@ -64,7 +66,6 @@ declare module '$env/static/private' {
 	export const KITTY_PUBLIC_KEY: string;
 	export const MOTD_SHOWN: string;
 	export const HOME: string;
-	export const NO_STRIP: string;
 	export const LANG: string;
 	export const LC_PAPER: string;
 	export const _JAVA_AWT_WM_NONREPARENTING: string;
@@ -98,6 +99,7 @@ declare module '$env/static/private' {
 	export const NVM_CD_FLAGS: string;
 	export const MOZ_ENABLE_WAYLAND: string;
 	export const LC_TELEPHONE: string;
+	export const QT_IM_MODULE: string;
 	export const LC_MEASUREMENT: string;
 	export const XDG_VTNR: string;
 	export const XDG_SESSION_ID: string;
@@ -108,6 +110,7 @@ declare module '$env/static/private' {
 	export const TAURI_FAMILY: string;
 	export const LC_TIME: string;
 	export const npm_package_json: string;
+	export const TAURI_DEBUG: string;
 	export const BROWSER: string;
 	export const npm_config_noproxy: string;
 	export const PATH: string;
@@ -165,6 +168,7 @@ declare module '$env/dynamic/private' {
 		XDG_SESSION_PATH: string;
 		NVM_INC: string;
 		TERM_PROGRAM_VERSION: string;
+		GTK_IM_MODULE: string;
 		XDG_BACKEND: string;
 		TMUX: string;
 		NODE: string;
@@ -174,6 +178,7 @@ declare module '$env/dynamic/private' {
 		TMUX_PLUGIN_MANAGER_PATH: string;
 		COLOR: string;
 		npm_config_local_prefix: string;
+		XMODIFIERS: string;
 		DESKTOP_SESSION: string;
 		LC_MONETARY: string;
 		HL_INITIAL_WORKSPACE_TOKEN: string;
@@ -194,7 +199,6 @@ declare module '$env/dynamic/private' {
 		KITTY_PUBLIC_KEY: string;
 		MOTD_SHOWN: string;
 		HOME: string;
-		NO_STRIP: string;
 		LANG: string;
 		LC_PAPER: string;
 		_JAVA_AWT_WM_NONREPARENTING: string;
@@ -228,6 +232,7 @@ declare module '$env/dynamic/private' {
 		NVM_CD_FLAGS: string;
 		MOZ_ENABLE_WAYLAND: string;
 		LC_TELEPHONE: string;
+		QT_IM_MODULE: string;
 		LC_MEASUREMENT: string;
 		XDG_VTNR: string;
 		XDG_SESSION_ID: string;
@@ -238,6 +243,7 @@ declare module '$env/dynamic/private' {
 		TAURI_FAMILY: string;
 		LC_TIME: string;
 		npm_package_json: string;
+		TAURI_DEBUG: string;
 		BROWSER: string;
 		npm_config_noproxy: string;
 		PATH: string;

@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
-use crate::go::Intersection;
+use crate::go::{Intersection, Zobrist};
 
 pub const ROWS: usize = 19;
 pub const COLS: usize = 19;
@@ -55,13 +55,14 @@ impl Node {
 #[derive(Serialize, Deserialize)]
 pub struct Saved {
     pub sgf: String,
-    states: Vec<Vec<Vec<Intersection>>>
+    states: Vec<(Vec<Vec<Intersection>>, Zobrist)>
 }
 
 impl Saved {
     pub fn new(game: &Game) -> Saved {
         let sgf: String = game.to_sgf();
-        let states: Vec<Vec<Vec<Intersection>>> = game.states.iter().map(|(board, _, _)| board.clone()).collect();
+        let states: Vec<(Vec<Vec<Intersection>>, Zobrist)> = game.states.iter()
+            .map(|(board, _, _, hash)| (board.clone(), hash.clone())).collect();
         Saved { sgf, states }
     }
 }
@@ -69,7 +70,7 @@ impl Saved {
 pub struct Game {
     pub root: Arc<Mutex<Node>>,
     pub curr: Arc<Mutex<Node>>,
-    pub states: Vec<(Vec<Vec<Intersection>>, Arc<Mutex<Node>>, Arc<Mutex<Node>>)>
+    pub states: Vec<(Vec<Vec<Intersection>>, Arc<Mutex<Node>>, Arc<Mutex<Node>>, Zobrist)>
 }
 
 impl Game {
@@ -96,15 +97,15 @@ impl Game {
     }
 
     /// Save the current state of the game
-    pub fn save_state(&mut self, board: Vec<Vec<Intersection>>) {
-        self.states.push((board, Arc::clone(&self.curr), Arc::clone(&self.root)));
+    pub fn save_state(&mut self, board: Vec<Vec<Intersection>>, hash: Zobrist) {
+        self.states.push((board, Arc::clone(&self.curr), Arc::clone(&self.root), hash));
     }
 
     /// Add states from a Saved game to the current game
     pub fn add_states(&mut self, saved: Saved) {
         // pre-fill states vector with number of saved states
         for i in 0..saved.states.len() {
-            self.states.push((saved.states[i].clone(), Arc::clone(&self.curr), Arc::clone(&self.root)));
+            self.states.push((saved.states[i].0.clone(), Arc::clone(&self.curr), Arc::clone(&self.root), saved.states[i].1.clone()));
         }
 
         // iterate through node tree, matching the board to each saved state board
@@ -127,8 +128,9 @@ impl Game {
             }
         }
         
+        let saved_states = saved.states.iter().map(|(board, _)| board.clone()).collect(); 
         let root_clone = Arc::clone(&self.root);
-        traverse_node(self, &root_clone, &saved.states);
+        traverse_node(self, &root_clone, &saved_states);
     }
 
     /// Convert the game tree to SGF string
