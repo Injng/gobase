@@ -3,7 +3,7 @@
 A base for playing Go.
 
 ## Installation
-[Pre-built AppImages](https://github.com/Injng/gobase/releases/tag/v0.2.1) are offered for Linux x86_64 systems. For other operating systems, clone the repository and see either the Developing or Building
+[Pre-built AppImages](https://github.com/Injng/gobase/releases/tag/v0.2.2) are offered for Linux x86_64 systems. For other operating systems, clone the repository and see either the Developing or Building
 sections below.
 
 ## Usage
