@@ -1,14 +1,17 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-pub mod go;
 pub mod game;
+pub mod go;
 
+use game::{Game, Node, Saved, BLACK, WHITE};
+use go::{
+    get_intersections, get_liberties, simulate_ko, Board, Group, Hash, Intersection, Tree, Zobrist,
+    COLS, ROWS,
+};
 use std::collections::HashSet;
 use std::fs;
 use std::sync::{Arc, Mutex};
-use go::{get_intersections, get_liberties, simulate_ko, Board, Group, Tree, Intersection, Hash, Zobrist, COLS, ROWS};
-use game::{Saved, Game, Node, BLACK, WHITE};
 
 #[tauri::command]
 fn get_rows() -> usize {
@@ -30,7 +33,13 @@ fn reset(board: tauri::State<Board>, hash: tauri::State<Hash>) {
 
 /// Check if a given move is valid
 #[tauri::command]
-fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: tauri::State<Hash>) -> bool {
+fn validate(
+    x: usize,
+    y: usize,
+    color: usize,
+    board: tauri::State<Board>,
+    hash: tauri::State<Hash>,
+) -> bool {
     let mut board = board.pieces.lock().unwrap();
     let mut hash = hash.zobrist.lock().unwrap();
     let intersection = &board[x][y];
@@ -41,7 +50,9 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
         Intersection::Empty => is_valid = true,
         _ => is_valid = false,
     }
-    if !is_valid { return is_valid; }
+    if !is_valid {
+        return is_valid;
+    }
 
     // prevent suicide by checking if group has any liberties
     is_valid = false;
@@ -87,15 +98,15 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
         get_liberties(row, col, actual_color, &mut board);
         match &board[row][col] {
             Intersection::Black(group) => {
-                if actual_color == 1 && group.liberties.len() == 1 { 
+                if actual_color == 1 && group.liberties.len() == 1 {
                     is_valid = true;
                 }
-            },
+            }
             Intersection::White(group) => {
                 if actual_color == 2 && group.liberties.len() == 1 {
                     is_valid = true;
                 }
-            },
+            }
             _ => (),
         }
     };
@@ -122,19 +133,37 @@ fn validate(x: usize, y: usize, color: usize, board: tauri::State<Board>, hash: 
 
 /// Wrapper function for tauri to handle a move
 #[tauri::command]
-fn tauri_move(x: usize, y: usize, color: usize, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize)> {
+fn tauri_move(
+    x: usize,
+    y: usize,
+    color: usize,
+    board: tauri::State<Board>,
+    tree: tauri::State<Tree>,
+) -> Vec<(usize, usize)> {
     let piece: Vec<(usize, usize)> = handle_move(x, y, color, &board, &tree);
     return piece;
 }
 
 // precondition: move is valid
 /// Handle a move by returning a list of intersections to remove
-fn handle_move(x: usize, y: usize, color: usize, board: &tauri::State<Board>, tree: &tauri::State<Tree>) -> Vec<(usize, usize)> {
+fn handle_move(
+    x: usize,
+    y: usize,
+    color: usize,
+    board: &tauri::State<Board>,
+    tree: &tauri::State<Tree>,
+) -> Vec<(usize, usize)> {
     let mut board = board.pieces.lock().unwrap();
     if color == 1 {
-        board[x][y] = Intersection::Black(Group { intersections: HashSet::new(), liberties: HashSet::new() });
+        board[x][y] = Intersection::Black(Group {
+            intersections: HashSet::new(),
+            liberties: HashSet::new(),
+        });
     } else {
-        board[x][y] = Intersection::White(Group { intersections: HashSet::new(), liberties: HashSet::new() });
+        board[x][y] = Intersection::White(Group {
+            intersections: HashSet::new(),
+            liberties: HashSet::new(),
+        });
     }
 
     // update intersections and liberties for the move
@@ -155,15 +184,15 @@ fn handle_move(x: usize, y: usize, color: usize, board: &tauri::State<Board>, tr
         get_liberties(row, col, actual_color, &mut board);
         match &board[row][col] {
             Intersection::Black(group) => {
-                if actual_color == 1 && group.liberties.len() == 0 { 
+                if actual_color == 1 && group.liberties.len() == 0 {
                     to_remove.extend(group.intersections.iter());
                 }
-            },
+            }
             Intersection::White(group) => {
                 if actual_color == 2 && group.liberties.len() == 0 {
                     to_remove.extend(group.intersections.iter());
                 }
-            },
+            }
             _ => (),
         }
     };
@@ -194,7 +223,10 @@ fn handle_move(x: usize, y: usize, color: usize, board: &tauri::State<Board>, tr
 
 /// Handle an undo move, and return (added_pieces, removed_pieces)
 #[tauri::command]
-fn handle_undo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
+fn handle_undo(
+    board: tauri::State<Board>,
+    tree: tauri::State<Tree>,
+) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
     let mut change_board = board.pieces.lock().unwrap();
     let mut game = tree.game.lock().unwrap();
 
@@ -217,18 +249,22 @@ fn handle_undo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(us
                                     if board[i][j] == Intersection::Empty {
                                         removed_pieces.push((i, j));
                                     } else {
-                                        added_pieces.push((i, j, match &board[i][j] {
-                                            Intersection::Black(_) => 1,
-                                            Intersection::White(_) => 2,
-                                            _ => 0,
-                                        }));
+                                        added_pieces.push((
+                                            i,
+                                            j,
+                                            match &board[i][j] {
+                                                Intersection::Black(_) => 1,
+                                                Intersection::White(_) => 2,
+                                                _ => 0,
+                                            },
+                                        ));
                                     }
                                 }
                             }
                         }
                         // update the actual board
                         *change_board = board.clone();
-                    },
+                    }
                     _ => (),
                 }
             }
@@ -241,7 +277,10 @@ fn handle_undo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(us
 
 /// Handle a redo move, and return (added_pieces, removed_pieces)
 #[tauri::command]
-fn handle_redo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
+fn handle_redo(
+    board: tauri::State<Board>,
+    tree: tauri::State<Tree>,
+) -> (Vec<(usize, usize, usize)>, Vec<(usize, usize)>) {
     let mut change_board = board.pieces.lock().unwrap();
     let mut game = tree.game.lock().unwrap();
 
@@ -268,18 +307,22 @@ fn handle_redo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(us
                                 if board[i][j] == Intersection::Empty {
                                     removed_pieces.push((i, j));
                                 } else {
-                                    added_pieces.push((i, j, match &board[i][j] {
-                                        Intersection::Black(_) => BLACK,
-                                        Intersection::White(_) => WHITE,
-                                        _ => 0,
-                                    }));
+                                    added_pieces.push((
+                                        i,
+                                        j,
+                                        match &board[i][j] {
+                                            Intersection::Black(_) => BLACK,
+                                            Intersection::White(_) => WHITE,
+                                            _ => 0,
+                                        },
+                                    ));
                                 }
                             }
                         }
                     }
                     // update the actual board
                     *change_board = board.clone();
-                },
+                }
                 _ => (),
             }
         }
@@ -288,13 +331,11 @@ fn handle_redo(board: tauri::State<Board>, tree: tauri::State<Tree>) -> (Vec<(us
 
     (added_pieces, removed_pieces)
 }
- 
+
 /// Evaluate a token from SGF
 fn eval_token(token: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree>) {
     // get action by retrieving characters before open bracket
-    let action = token.chars()
-        .take_while(|&c| c != '[')
-        .collect::<String>();
+    let action = token.chars().take_while(|&c| c != '[').collect::<String>();
 
     // if action is not "B" or "W", return early
     if action != "B" && action != "W" {
@@ -302,8 +343,10 @@ fn eval_token(token: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree
     }
 
     // otherwise, get coordinates by retrieving characters between brackets
-    let coords = token.chars()
-        .skip_while(|&c| c != '[').skip(1)
+    let coords = token
+        .chars()
+        .skip_while(|&c| c != '[')
+        .skip(1)
         .take_while(|&c| c != ']')
         .collect::<String>();
 
@@ -313,8 +356,8 @@ fn eval_token(token: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree
     }
 
     // transform SGF coordinates to board coordinates
-    let x = coords.chars().nth(0).unwrap() as usize - 'a' as usize;
-    let y = coords.chars().nth(1).unwrap() as usize - 'a' as usize;
+    let y = coords.chars().nth(0).unwrap() as usize - 'a' as usize;
+    let x = coords.chars().nth(1).unwrap() as usize - 'a' as usize;
 
     // handle the move
     let color = if action == "B" { BLACK } else { WHITE };
@@ -323,7 +366,11 @@ fn eval_token(token: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree
 
 /// Tauri wrapper function for creating a Game from a file containing an SGF string
 #[tauri::command]
-fn from_sgf_file(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+fn from_sgf_file(
+    file: &str,
+    board: tauri::State<Board>,
+    tree: tauri::State<Tree>,
+) -> Vec<(usize, usize, usize)> {
     // load sgf from file and create a new Game
     let sgf: &str = &fs::read_to_string(file).expect("Error: cannot read file");
     {
@@ -342,7 +389,11 @@ fn from_sgf_file(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree
 
 /// Create a Game from an SGF string, and return the added pieces
 #[tauri::command]
-fn from_sgf(sgf: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+fn from_sgf(
+    sgf: &str,
+    board: &tauri::State<Board>,
+    tree: &tauri::State<Tree>,
+) -> Vec<(usize, usize, usize)> {
     // strip first and last parantheses
     let mut loaded = sgf.chars();
     loaded.next();
@@ -376,7 +427,7 @@ fn from_sgf(sgf: &str, board: &tauri::State<Board>, tree: &tauri::State<Tree>) -
 /// Saves the current state of the board
 #[tauri::command]
 fn save_state(board: tauri::State<Board>, tree: tauri::State<Tree>, hash: tauri::State<Hash>) {
-    let hash = hash.zobrist.lock().unwrap(); 
+    let hash = hash.zobrist.lock().unwrap();
     let board = board.pieces.lock().unwrap();
     let mut game = tree.game.lock().unwrap();
     game.save_state(board.clone(), hash.clone());
@@ -398,7 +449,12 @@ fn print_board(board: &Vec<Vec<Intersection>>) {
 
 /// Reverts to a saved state of the board
 #[tauri::command]
-fn revert_state(state_idx: usize, board: tauri::State<Board>, tree: tauri::State<Tree>, hash: tauri::State<Hash>) -> Vec<(usize, usize, usize)> {
+fn revert_state(
+    state_idx: usize,
+    board: tauri::State<Board>,
+    tree: tauri::State<Tree>,
+    hash: tauri::State<Hash>,
+) -> Vec<(usize, usize, usize)> {
     let mut board = board.pieces.lock().unwrap();
     let mut hash = hash.zobrist.lock().unwrap();
     let mut game = tree.game.lock().unwrap();
@@ -437,7 +493,11 @@ fn init_states(tree: tauri::State<Tree>) -> usize {
 #[tauri::command]
 fn save_sgf(file: &str, tree: tauri::State<Tree>) {
     // check if file ends in extension .sgf, and if not append
-    let file = if file.ends_with(".sgf") { file.to_string() } else { format!("{}.sgf", file) };
+    let file = if file.ends_with(".sgf") {
+        file.to_string()
+    } else {
+        format!("{}.sgf", file)
+    };
 
     // save SGF file
     let game = tree.game.lock().unwrap();
@@ -449,7 +509,11 @@ fn save_sgf(file: &str, tree: tauri::State<Tree>) {
 #[tauri::command]
 fn save_game(file: &str, tree: tauri::State<Tree>) {
     // check if file ends in extension .save, and if not append
-    let file = if file.ends_with(".save") { file.to_string() } else { format!("{}.save", file) };
+    let file = if file.ends_with(".save") {
+        file.to_string()
+    } else {
+        format!("{}.save", file)
+    };
 
     // serialize Game into JSON and save
     let game = tree.game.lock().unwrap();
@@ -460,7 +524,11 @@ fn save_game(file: &str, tree: tauri::State<Tree>) {
 
 /// Load a Game from a file containing a serialized Saved struct
 #[tauri::command]
-fn load_game(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -> Vec<(usize, usize, usize)> {
+fn load_game(
+    file: &str,
+    board: tauri::State<Board>,
+    tree: tauri::State<Tree>,
+) -> Vec<(usize, usize, usize)> {
     // deserialize Saved struct from file
     let saved_json: &str = &fs::read_to_string(file).expect("Error: cannot read file");
     let saved_game: Saved = serde_json::from_str(saved_json).unwrap();
@@ -487,13 +555,31 @@ fn load_game(file: &str, board: tauri::State<Board>, tree: tauri::State<Tree>) -
 
 fn main() {
     tauri::Builder::default()
-        .manage(Board { pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS])})
-        .manage(Hash { zobrist: Mutex::new(Zobrist::new()) })
-        .manage(Tree { game: Mutex::new(Game::new()) })
-        .invoke_handler(tauri::generate_handler![get_rows, get_cols, reset, validate, 
-            tauri_move, handle_undo, handle_redo, from_sgf_file, save_state, revert_state, 
-            init_states, save_game, load_game, save_sgf])
+        .manage(Board {
+            pieces: Mutex::new(vec![vec![Intersection::Empty; COLS]; ROWS]),
+        })
+        .manage(Hash {
+            zobrist: Mutex::new(Zobrist::new()),
+        })
+        .manage(Tree {
+            game: Mutex::new(Game::new()),
+        })
+        .invoke_handler(tauri::generate_handler![
+            get_rows,
+            get_cols,
+            reset,
+            validate,
+            tauri_move,
+            handle_undo,
+            handle_redo,
+            from_sgf_file,
+            save_state,
+            revert_state,
+            init_states,
+            save_game,
+            load_game,
+            save_sgf
+        ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application"); 
+        .expect("error while running tauri application");
 }
-

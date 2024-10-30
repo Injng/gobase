@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
-use serde::{Serialize, Deserialize};
 use crate::go::{Intersection, Zobrist};
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 
 pub const ROWS: usize = 19;
 pub const COLS: usize = 19;
@@ -24,7 +24,12 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn new(board: Vec<Vec<Intersection>>, piece: (usize, usize), color: usize, parent: Option<Arc<Mutex<Node>>>) -> Node {
+    pub fn new(
+        board: Vec<Vec<Intersection>>,
+        piece: (usize, usize),
+        color: usize,
+        parent: Option<Arc<Mutex<Node>>>,
+    ) -> Node {
         Node::Move {
             board,
             piece,
@@ -34,7 +39,12 @@ impl Node {
         }
     }
 
-    pub fn end(board: Vec<Vec<Intersection>>, piece: (usize, usize), color: usize, parent: Option<Arc<Mutex<Node>>>) -> Node {
+    pub fn end(
+        board: Vec<Vec<Intersection>>,
+        piece: (usize, usize),
+        color: usize,
+        parent: Option<Arc<Mutex<Node>>>,
+    ) -> Node {
         Node::End {
             board,
             piece,
@@ -55,14 +65,17 @@ impl Node {
 #[derive(Serialize, Deserialize)]
 pub struct Saved {
     pub sgf: String,
-    states: Vec<(Vec<Vec<Intersection>>, Zobrist)>
+    states: Vec<(Vec<Vec<Intersection>>, Zobrist)>,
 }
 
 impl Saved {
     pub fn new(game: &Game) -> Saved {
         let sgf: String = game.to_sgf();
-        let states: Vec<(Vec<Vec<Intersection>>, Zobrist)> = game.states.iter()
-            .map(|(board, _, _, hash)| (board.clone(), hash.clone())).collect();
+        let states: Vec<(Vec<Vec<Intersection>>, Zobrist)> = game
+            .states
+            .iter()
+            .map(|(board, _, _, hash)| (board.clone(), hash.clone()))
+            .collect();
         Saved { sgf, states }
     }
 }
@@ -70,7 +83,12 @@ impl Saved {
 pub struct Game {
     pub root: Arc<Mutex<Node>>,
     pub curr: Arc<Mutex<Node>>,
-    pub states: Vec<(Vec<Vec<Intersection>>, Arc<Mutex<Node>>, Arc<Mutex<Node>>, Zobrist)>
+    pub states: Vec<(
+        Vec<Vec<Intersection>>,
+        Arc<Mutex<Node>>,
+        Arc<Mutex<Node>>,
+        Zobrist,
+    )>,
 }
 
 impl Game {
@@ -78,18 +96,27 @@ impl Game {
         let board = vec![vec![Intersection::Empty; COLS]; ROWS];
         let root = Arc::new(Mutex::new(Node::new(board, (0, 0), BLACK, None)));
         let curr = Arc::clone(&root);
-        Game { root, curr, states: Vec::new() }
+        Game {
+            root,
+            curr,
+            states: Vec::new(),
+        }
     }
 
     /// Add a node to the game tree
     pub fn add_node(&mut self, board: Vec<Vec<Intersection>>, piece: (usize, usize), color: usize) {
-        let node = Arc::new(Mutex::new(Node::new(board, piece, color, Some(Arc::clone(&self.curr)))));
+        let node = Arc::new(Mutex::new(Node::new(
+            board,
+            piece,
+            color,
+            Some(Arc::clone(&self.curr)),
+        )));
         {
             let mut self_node = self.curr.lock().unwrap();
             match &mut *self_node {
                 Node::Move { children, .. } => {
                     children.push(Arc::clone(&node));
-                },
+                }
                 _ => (),
             }
         }
@@ -98,21 +125,33 @@ impl Game {
 
     /// Save the current state of the game
     pub fn save_state(&mut self, board: Vec<Vec<Intersection>>, hash: Zobrist) {
-        self.states.push((board, Arc::clone(&self.curr), Arc::clone(&self.root), hash));
+        self.states
+            .push((board, Arc::clone(&self.curr), Arc::clone(&self.root), hash));
     }
 
     /// Add states from a Saved game to the current game
     pub fn add_states(&mut self, saved: Saved) {
         // pre-fill states vector with number of saved states
         for i in 0..saved.states.len() {
-            self.states.push((saved.states[i].0.clone(), Arc::clone(&self.curr), Arc::clone(&self.root), saved.states[i].1.clone()));
+            self.states.push((
+                saved.states[i].0.clone(),
+                Arc::clone(&self.curr),
+                Arc::clone(&self.root),
+                saved.states[i].1.clone(),
+            ));
         }
 
         // iterate through node tree, matching the board to each saved state board
-        fn traverse_node(game: &mut Game, node: &Arc<Mutex<Node>>, states: &Vec<Vec<Vec<Intersection>>>) {
+        fn traverse_node(
+            game: &mut Game,
+            node: &Arc<Mutex<Node>>,
+            states: &Vec<Vec<Vec<Intersection>>>,
+        ) {
             let mut node_data = node.lock().unwrap();
             match &mut *node_data {
-                Node::Move { board, children, .. } => {
+                Node::Move {
+                    board, children, ..
+                } => {
                     // search in states for matching board
                     for i in 0..states.len() {
                         if board == &states[i] {
@@ -123,12 +162,16 @@ impl Game {
                     for child in children {
                         traverse_node(game, child, states);
                     }
-                },
+                }
                 _ => (),
             }
         }
-        
-        let saved_states = saved.states.iter().map(|(board, _)| board.clone()).collect(); 
+
+        let saved_states = saved
+            .states
+            .iter()
+            .map(|(board, _)| board.clone())
+            .collect();
         let root_clone = Arc::clone(&self.root);
         traverse_node(self, &root_clone, &saved_states);
     }
@@ -140,7 +183,12 @@ impl Game {
         fn traverse_node(node: &Arc<Mutex<Node>>, sgf: &mut String, mut first: usize) {
             let node = node.lock().unwrap();
             match &*node {
-                Node::Move { piece, color, children, .. } => {
+                Node::Move {
+                    piece,
+                    color,
+                    children,
+                    ..
+                } => {
                     // ignore first placeholder node
                     if first < 1 {
                         first += 1;
@@ -158,10 +206,10 @@ impl Game {
 
                     // get move color and location
                     let color_str = if *color == BLACK { "B" } else { "W" };
-                    let y = (piece.1 as u8 + b'a') as char;
-                    let x = (piece.0 as u8 + b'a') as char;
+                    let x = (piece.1 as u8 + b'a') as char;
+                    let y = (piece.0 as u8 + b'a') as char;
                     sgf.push_str(&format!(";{}[{}{}]", color_str, x, y));
-                    
+
                     // go to next node
                     if children.len() > 1 {
                         for child in children {
@@ -174,14 +222,14 @@ impl Game {
                     } else {
                         sgf.push(';');
                     }
-                },
+                }
                 Node::End { piece, color, .. } => {
                     println!("Node::End");
                     let color_str = if *color == BLACK { "B" } else { "W" };
-                    let y = (piece.1 as u8 + b'a') as char;
-                    let x = (piece.0 as u8 + b'a') as char;
+                    let x = (piece.1 as u8 + b'a') as char;
+                    let y = (piece.0 as u8 + b'a') as char;
                     sgf.push_str(&format!(";{}[{}{}]", color_str, x, y));
-                },
+                }
             }
         }
 
@@ -190,4 +238,3 @@ impl Game {
         sgf
     }
 }
-
